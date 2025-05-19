@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Admin Panel - จัดการยูสเซอร์</h2>
+<a href="{{ url_for('admin_add_user') }}" class="btn btn-success">+ สร้างยูสเซอร์ใหม่</a>
+<a href="{{ url_for('admin_topup_slips') }}" class="btn-admin-slip">💰 อนุมัติสลิปเติมเงิน</a>
+<table>
+    <tr>
+        <th>ชื่อผู้ใช้</th>
+        <th>ระดับ</th>
+        <th>วันหมดอายุ</th>
+        <th>เครดิตคงเหลือ</th>
+        <th>IP ที่ใช้งานล่าสุด</th>
+        <th>แก้ไข</th>
+    </tr>
+    {% for user in users %}
+    <tr>
+        <td>{{ user.username }}</td>
+        <td>{{ user.role }}</td>
+        <td>{{ user.expire_date }}</td>
+        <td>{{ user.credit if user and user.credit is not none else 0 }}</td>
+        <td>{{ user.last_ip or '-' }}</td>
+        <td>
+            <a href="{{ url_for('admin_edit_user', username=user.username) }}" class="btn-edit">แก้ไข</a>
+            <form action="{{ url_for('admin_delete_user', username=user.username) }}" method="post" style="display:inline;">
+                <button type="submit" class="btn-delete" onclick="return confirm('ลบยูสเซอร์นี้?')">ลบ</button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+    
+</table>
+{% endblock %}

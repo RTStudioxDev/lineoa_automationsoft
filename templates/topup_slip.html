@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="topup-center">
+    <div class="topup-card">
+        <div class="topup-title">💸 เติมเครดิต (แนบสลิปโอนเงิน)</div>
+        <form method="POST" enctype="multipart/form-data" class="topup-form">
+            <label for="amount">จำนวนเงิน (บาท):</label>
+            <input type="number" name="amount" id="amount" min="1" step="1" required placeholder="กรอกจำนวนเงิน" class="topup-input">
+
+            <label for="slip">แนบสลิปโอนเงิน:</label>
+            <input type="file" name="slip" id="slip" accept="image/*" required class="topup-input-file" onchange="previewSlip(this)">
+            <div id="slip-preview" style="display:none;">
+                <img id="preview-img" src="#" alt="Preview Slip" class="topup-slip-img">
+            </div>
+
+            <button type="submit" class="topup-btn">ส่งคำขอเติมเงิน</button>
+        </form>
+        <div class="topup-hint">
+            📢 <b>หมายเหตุ:</b> หลังส่งคำขอ รอแอดมินตรวจสอบและอนุมัติในระบบก่อนเครดิตจะเข้าบัญชี
+        </div>
+    </div>
+</div>
+<style>
+.topup-center { display: flex; justify-content: center; align-items: center; min-height: 85vh; }
+.topup-card {
+    background: #fff; border-radius: 18px; box-shadow: 0 6px 36px #d4ffe7;
+    padding: 32px 34px 26px 34px; min-width: 330px; max-width: 380px;
+}
+.topup-title { font-size: 1.6em; font-weight: 600; color: #07ad5a; margin-bottom: 18px; text-align:center;}
+.topup-form label { display: block; margin-bottom: 6px; font-weight: 500; color: #085c23;}
+.topup-input {
+    width: 100%; padding: 10px; border: 1px solid #cce6d3; border-radius: 8px;
+    margin-bottom: 20px; font-size: 1.09em; background: #f8fffa;
+}
+.topup-input-file { margin-bottom: 12px;}
+.topup-slip-img {
+    width: 120px; border-radius: 10px; margin-bottom: 18px; border:1px solid #eee; box-shadow: 0 1px 12px #caf7e4;
+}
+.topup-btn {
+    width: 100%; background: linear-gradient(90deg, #09cf6d 70%, #08ad58); color: #fff; border: none;
+    padding: 13px 0; border-radius: 9px; font-size: 1.09em; font-weight: 600; letter-spacing: 1px; cursor:pointer; transition:background .2s;
+}
+.topup-btn:hover { background: linear-gradient(90deg, #1ee89a 60%, #0ec073);}
+.topup-hint { font-size:0.99em; color:#5e7a67; margin-top:20px; }
+</style>
+<script>
+function previewSlip(input) {
+    const preview = document.getElementById('slip-preview');
+    const img = document.getElementById('preview-img');
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            img.src = e.target.result;
+            preview.style.display = 'block';
+        }
+        reader.readAsDataURL(input.files[0]);
+    } else {
+        preview.style.display = 'none';
+    }
+}
+</script>
+{% endblock %}

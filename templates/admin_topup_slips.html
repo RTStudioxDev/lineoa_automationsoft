@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>รายการเติมเงิน (แนบสลิป)</h2>
+<table>
+    <tr>
+        <th>ชื่อผู้ใช้</th>
+        <th>จำนวนเงิน</th>
+        <th>สลิป</th>
+        <th>สถานะ</th>
+        <th>จัดการ</th>
+    </tr>
+    {% for slip in slips %}
+    <tr>
+        <td>{{ slip.username }}</td>
+        <td>{{ slip.amount }}</td>
+        <td>
+            <a href="{{ url_for('uploaded_file', filename=slip.image) }}" target="_blank">
+                <img src="{{ url_for('uploaded_file', filename=slip.image) }}" width="80">
+            </a>
+        </td>
+        <td>
+            {% if slip.status == "pending" %}
+                <span style="color:orange;">รอตรวจสอบ</span>
+            {% elif slip.status == "approved" %}
+                <span style="color:green;">อนุมัติแล้ว</span>
+            {% elif slip.status == "rejected" %}
+                <span style="color:red;">ปฏิเสธ</span>
+            {% endif %}
+        </td>
+        <td>
+            {% if slip.status == "pending" %}
+            <form method="post" action="{{ url_for('approve_topup_slip', slip_id=slip._id) }}" style="display:inline;">
+                <button type="submit" onclick="return confirm('ยืนยันอนุมัติสลิปนี้?');">✅ อนุมัติ</button>
+            </form>
+            <form method="post" action="{{ url_for('reject_topup_slip', slip_id=slip._id) }}" style="display:inline;">
+                <input name="admin_comment" placeholder="เหตุผล (ถ้ามี)" style="width:90px;">
+                <button type="submit" onclick="return confirm('ยืนยันปฏิเสธสลิปนี้?');">❌ ปฏิเสธ</button>
+            </form>
+            {% endif %}
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}

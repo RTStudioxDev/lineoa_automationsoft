@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+    <h2>แก้ไขผู้ใช้: {{ user.username }}</h2>
+    <form method="post">
+        <label>Username:</label>
+        <input type="text" name="username" value="{{ user.username }}" readonly><br>
+        <label>เปลี่ยนรหัสผ่านใหม่:</label>
+        <input type="password" name="password" placeholder="(ไม่กรอก = ไม่เปลี่ยน)">
+        <br>
+        <label>ยศ (role):</label>
+        <select name="role">
+            <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
+            <option value="user" {% if user.role == 'user' %}selected{% endif %}>User</option>
+        </select>
+        <br>
+        <label>วันหมดอายุ (จำนวนวัน):</label>
+        <input type="number" name="expire_days" min="1" value="30" required>
+        <br>
+        <button type="submit" class="btn btn-outline">บันทึกการเปลี่ยนแปลง</button>
+        <a href="{{ url_for('admin_panel') }}" class="btn btn-outline">ย้อนกลับ</a>
+    </form>
+    <form method="post" action="{{ url_for('admin_add_credit', username=user.username) }}">
+        <input type="number" name="amount" placeholder="จำนวนเครดิต" required>
+        <button type="submit" class="btn btn-edit">เติมเครดิต</button>
+    </form>
+{% endblock %}

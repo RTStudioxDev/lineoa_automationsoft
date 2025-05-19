@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>LINEOA AutomationSoft</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<nav class="top-navbar">
+    LineOA Automation
+    {% if days_left is not none %}
+        | <span class="days-left">วันที่ใช้งานของคุณจะหมดใน <b>{{ days_left }}</b> วัน</span>
+    {% endif %}
+    <div class="profile-nav-right">
+      {% if session.get('user_login') %}
+          {% set user = get_user_profile(session['user_login']) %}
+          <div class="profile-menu-container">
+              <button class="profile-btn" onclick="toggleProfileMenu()" type="button">
+                  <span class="profile-avatar">{{ session['user_login'][0]|upper }}</span>
+                  {{ session['user_login'] }}
+                  <svg width="16" height="16" viewBox="0 0 24 24" style="margin-left:4px;">
+                      <path fill="#fff" d="M7 10l5 5 5-5z"/>
+                  </svg>
+              </button>
+              <div class="profile-dropdown">
+                <div class="menu-title">บัญชีผู้ใช้</div>
+                <div class="profile-item"><span>ชื่อผู้ใช้:</span> <b>{{ session['user_login'] }}</b></div>
+                <div class="profile-item">
+                  <span>เครดิตคงเหลือ:</span> <b class="profile-credit">{{ user.credit if user and user.credit is not none else 0 }}</b>
+              </div>
+                <div class="profile-item">
+                    IP ที่ใช้งาน: <b class="profile-ip">{{ user.last_ip if user and user.last_ip else '-' }}</b>
+                </div>
+                <div class="profile-item"><span>วันหมดอายุ:</span>
+                    <b class="{% if user and user.expire_date and user.expire_date < today %}profile-expired{% else %}profile-valid{% endif %}">
+                        {{ user.expire_date if user and user.expire_date else '-' }}
+                    </b>
+                </div>
+                <a href="{{ url_for('renew') }}"
+                  class="renew-link-btn{% if request.endpoint == 'renew' %} active{% endif %}">
+                    <span style="font-size:1.1em;vertical-align:middle;margin-right:5px;">🔄</span>
+                    ต่ออายุการใช้งาน
+                </a>
+                {% if get_user_role(session['user_login']) == 'admin' %}
+                  <a href="{{ url_for('admin_panel') }}" class="admin-panel-btn">
+                    <span style="font-size:1.15em;vertical-align:middle;margin-right:5px;">🛡️</span>
+                    Admin Panel
+                  </a>
+                {% endif %}
+                <div class="profile-item">
+                    <a href="{{ url_for('change_password') }}" class="profile-link">เปลี่ยนรหัสผ่าน</a>
+                </div>
+                <a href="{{ url_for('logout_user') }}" class="logout-btn">ออกจากระบบ</a>
+              </div>
+          </div>
+      {% endif %}
+    </div>
+</nav>
+<div class="layout">
+    <aside class="sidebar">
+        <div class="sidebar-header">
+          <a href="{{ url_for('dashboard') }}" class="sidebar-title">หน้าหลัก</a>
+            <!-- <span class="sidebar-title">MENU</span> -->
+        </div>
+        {% if oa %}
+            <div class="sidebar-account">
+                <div class="sidebar-account-label">ไลน์ OA ที่ใช้งานปัจจุบัน</div>
+                <div class="sidebar-account-name">{{ oa.name }}</div>
+            </div>
+            <nav class="sidebar-menu">
+                <a href="{{ url_for('dashboard') }}" {% if request.endpoint == 'dashboard' %}class="active"{% endif %}>🏠 Dashboard</a>
+                <a href="{{ url_for('send_msg') }}" {% if request.endpoint == 'send_msg' %}class="active"{% endif %}>✉️ ส่งข้อความ</a>
+                <a href="{{ url_for('send_flex_msg') }}" {% if request.endpoint == 'send_flex_msg' %}class="active"{% endif %}>🖼️ ส่ง Rich Message</a>
+                <a href="{{ url_for('topup') }}" {% if request.endpoint == 'topup' %}class="active"{% endif %}>💸 เติมเงิน</a>
+                <a href="{{ url_for('topup_history') }}" {% if request.endpoint == 'topup_history' %}class="active"{% endif %}>
+                    💳 ประวัติการเติมเงิน
+                </a>
+                <a href="{{ url_for('switch_oa') }}" {% if request.endpoint == 'switch_oa' %}class="active"{% endif %}>🔄 เปลี่ยน OA</a>
+            </nav>
+        {% else %}
+            <nav class="sidebar-menu">
+                <a href="{{ url_for('login') }}">เลือกบัญชี OA</a>
+                <a href="{{ url_for('add_oa') }}">เพิ่มบัญชี OA</a>
+            </nav>
+        {% endif %}
+    </aside>
+    <main class="main-content">
+        <div class="content">
+            {% with messages = get_flashed_messages() %}
+              {% if messages %}
+                <ul class="flashes" id="flash-msg">
+                {% for message in messages %}
+                  <li>{{ message }}</li>
+                {% endfor %}
+                </ul>
+                <script>
+                  setTimeout(function(){
+                    var flash = document.getElementById('flash-msg');
+                    if(flash){
+                      flash.style.transition = 'opacity 0.5s';
+                      flash.style.opacity = 0;
+                      setTimeout(function(){ flash.style.display = 'none'; }, 500);
+                    }
+                  }, 2000);
+                </script>
+              {% endif %}
+            {% endwith %}
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+    <script>
+    function toggleProfileMenu() {
+        const container = document.querySelector('.profile-menu-container');
+        container.classList.toggle('open');
+        // ปิด dropdown ถ้าคลิกข้างนอก
+        window.addEventListener('click', function(e) {
+            if (!container.contains(e.target)) container.classList.remove('open');
+        }, {once:true});
+    }
+    </script>
+</div>
+</body>
+</html>

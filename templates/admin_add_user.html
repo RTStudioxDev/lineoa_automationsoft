@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>เพิ่มผู้ใช้ใหม่</h2>
+<form method="post">
+    <label>Username:</label>
+    <input type="text" name="username" required>
+    <br>
+    <label>Password:</label>
+    <input type="password" name="password" required>
+    <br>
+    <label>ยศ:</label>
+    <select name="role" required>
+        <option value="user">User</option>
+        <option value="admin">Admin</option>
+    </select>
+    <br>
+    <label>วันหมดอายุ (จำนวนวัน):</label>
+    <input type="number" name="expire_days" min="1" required>
+    <br>
+    <button type="submit" class="btn">สร้างยูสเซอร์</button>
+    <a href="{{ url_for('admin_panel') }}" class="btn btn-outline" style="margin-left:14px;">ย้อนกลับ</a>
+</form>
+{% endblock %}

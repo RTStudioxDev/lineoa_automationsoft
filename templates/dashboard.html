@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="dashboard-row">
+    <!-- ฟังก์ชัน -->
+    <div class="dashboard-card section-func">
+        <div class="section-title">Dashboard เมนู</div>
+        <div class="dashboard-actions">
+            <a href="{{ url_for('send_msg') }}" class="db-link">
+                <div class="icon">💬</div>
+                <div>ส่งข้อความ/รูปภาพ</div>
+            </a>
+            <a href="{{ url_for('send_flex_msg') }}" class="db-link">
+                <div class="icon">🧩</div>
+                <div>ส่งริชเมสเสจ(แบบ Flex)</div>
+            </a>
+            <a href="{{ url_for('topup') }}" class="db-link">
+                <div class="icon">💸</div>
+                <div>เติมเงิน</div>
+            </a>
+            <a href="{{ url_for('topup_history') }}" class="db-link">
+                <div class="icon">💳</div>
+                <div>ประวัติการเติมเงิน</div>
+            </a>
+            <a href="{{ url_for('switch_oa') }}" class="db-link">
+                <div class="icon">🔄</div>
+                <div>เปลี่ยนบัญชี OA</div>
+            </a>
+        </div>
+    </div>
+
+    <!-- OA Info -->
+    <div class="dashboard-card section-oa">
+        <div class="section-title">บัญชี LINE OA ที่เลือกใช้</div>
+        <div class="oa-info-detail">
+            <div><b>ชื่อ:</b> {{ oa.name }}</div>
+            <div><b>OA_ID:</b> <span style="color:#2990f1;">{{ oa.id }}</span></div>
+            <div><b>Channel Secret:</b></div>
+            <div style="font-size:0.95em;word-break:break-all;">{{ oa.secret }}</div>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:center; width:100%;">
+            <!-- กล่องรวมอัปโหลด -->
+            <form action="{{ url_for('import_users') }}" method="post" enctype="multipart/form-data" 
+                style="display:flex; gap:8px; margin-bottom:10px; width:100%; justify-content:center;">
+                <input type="file" name="file" accept=".csv,.xlsx,.xls" required 
+                    style="flex:2 1 120px;min-width:120px;padding:7px 10px;border-radius:8px; margin-bottom:0px;">
+                <input type="hidden" name="oa_id" value="{{ oa.id }}">
+                <button type="submit" class="btn"
+                    style="flex:0 0 20px; min-width:307px; max-width:350px; font-size:1em; padding:7px 0; margin-bottom:5px;">
+                    อัปโหลดรายชื่อ
+                </button>
+                <!-- ปุ่มส่งออก -->
+                <a href="{{ url_for('export_oa_userids', oa_id=oa.id) }}" class="btn"
+                style="width:92%; max-width:270px; margin-bottom:5px;">ส่งออก user_id เป็น CSV</a>
+                <!-- ปุ่มตัวอย่าง csv -->
+                <a href="{{ url_for('static', filename='example_userid.csv') }}" 
+                class="btn" target="_blank"
+                style="background:#fff7e6;color:#c77c06;border:1.2px solid #ffc25e;width:92%;max-width:270px; margin-bottom:5px;">
+                    ดาวน์โหลดตัวอย่าง CSV
+                </a>
+                <small style="margin-top:6px; color:#888; display:block; text-align:center;">
+                    รองรับ .csv, .xlsx, .xls
+                </small>
+            </form>
+        </div>
+        <form action="{{ url_for('clear_users') }}" method="post" style="display:inline;">
+            <input type="hidden" name="oa_id" value="{{ oa.id }}">
+            <button type="submit" class="btn btn-danger"
+                style="flex:0 0 20px; min-width:1500px; max-width:3500px; font-size:1em; padding:7px 0; margin-bottom:5px;"
+                onclick="return confirm('ลบรายชื่อทั้งหมดของ OA นี้?');">
+                🗑️ ลบรายชื่อทั้งหมด
+            </button>
+        </form>
+        {% if import_result %}
+            <div style="margin:10px 0 0 0;">
+                <b>Import สำเร็จ {{ import_result|length }} คน:</b>
+                <ul style="margin-bottom:0;">
+                    {% for user in import_result %}
+                    <li>{{ user }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+        <div class="dashboard-card section-friends">
+            <div class="section-title">👥 จำนวนคนที่ส่งข้อความได้</div>
+            <div class="oa-stats-value">{{ total_friends }}</div>
+            <div class="oa-stats-unit">คน</div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+    <h2>เพิ่มบัญชี LINE Official Account</h2>
+    <form method="post">
+        <label>ชื่อ OA:</label>
+        <input type="text" name="name" required placeholder="เช่น MyShop OA">
+        <br>
+        <label>Channel Access Token:</label>
+        <input type="text" name="access_token" required>
+        <br>
+        <label>Channel Secret:</label>
+        <input type="text" name="secret" required>
+        <br>
+        <button type="submit">บันทึก</button>
+    </form>
+    <br>
+    <a href="{{ url_for('login') }}">ย้อนกลับ</a>
+
+    <h2>รายการบัญชี OA ทั้งหมด</h2>
+    <table border="1" cellpadding="6" cellspacing="0">
+        <tr>
+            <th>ชื่อ OA</th>
+            <th>Channel ID</th>
+            <th>ลบ</th>
+        </tr>
+        {% for oa in oa_list %}
+        <tr>
+            <td>{{ oa.name }}</td>
+            <td>{{ oa.id or '' }}</td>
+            <td>
+                <form method="post" action="{{ url_for('delete_oa_route', oa_id=oa.id) }}" style="display:inline;" onsubmit="return confirm('ยืนยันลบบัญชี OA นี้?');">
+                    <button type="submit" style="color:red;">ลบ</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+{% endblock %}
