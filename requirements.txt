@@ -3,3 +3,5 @@ requests
 python-dotenv
 openpyxl
 pandas
+pymongo
+gunicorn
