@@ -1,4 +1,3 @@
-import os
 import time
 from flask import Flask, render_template, request, redirect, url_for, flash, session, send_from_directory, Blueprint, jsonify, Response
 from line_api import LineAPI
@@ -17,11 +16,11 @@ import csv
 import io
 import pprint
 
-MONGO_URI = "mongodb+srv://admin:060843Za@telegrambot.f91jjzo.mongodb.net/"
-DB_NAME = "Lineautomation"
+MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://admin:060843Za@telegrambot.f91jjzo.mongodb.net/")
+DB_NAME = os.getenv("DB_NAME", "Lineautomation")
 
 app = Flask(__name__)
-app.secret_key = "lineoa-automationsoft-key"
+app.secret_key = os.getenv("SECRET_KEY", "lineoa-automationsoft-key")
 app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(__file__), 'uploads')
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
