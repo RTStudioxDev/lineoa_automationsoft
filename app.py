@@ -33,7 +33,7 @@ send_progress = {
 }
 send_cancelled = False
 
-# --- Helper สำหรับ MongoDB แบบแยก owner ---
+# --- Helper สำหรับ ดึง user_id ---
 def add_oa_to_user(username, oa_dict):
     mongo_db.users.update_one(
         {"username": username},
@@ -56,6 +56,37 @@ def get_oa_by_id(username, oa_id):
         for oa in user["oa_list"]:
             if str(oa.get("id")) == str(oa_id):
                 return oa
+    return None
+
+def get_oa_id_from_mid(mid, target_oa_id=None):
+    # 1. ค้นหา mid ปกติ
+    result = mongo_db.users.find_one(
+        {"oa_list.mid": mid},
+        {"oa_list.$": 1}
+    )
+    if result and "oa_list" in result and result["oa_list"]:
+        return result["oa_list"][0]["id"]
+
+    # 2. หา OA ที่ยังไม่มี mid (ถ้ามีมากกว่า 1 ตัว ต้อง mapping manual)
+    users = list(mongo_db.users.find({}))
+    candidates = []
+    for user in users:
+        for idx, oa in enumerate(user.get("oa_list", [])):
+            if not oa.get("mid"):
+                candidates.append((user, idx, oa))
+
+    if len(candidates) == 1:
+        user, idx, oa = candidates[0]
+        mongo_db.users.update_one(
+            {"_id": user["_id"]},
+            {"$set": {f"oa_list.{idx}.mid": mid}}
+        )
+        print(f"[AUTO] Mapping mid {mid} → oa_id {oa['id']}")
+        return oa["id"]
+    elif len(candidates) > 1:
+        print("[ERROR] มี OA หลายตัวที่ยังไม่มี mid! ต้อง mapping เองใน admin ก่อนใช้งาน")
+    else:
+        print("[ERROR] ไม่พบ OA ที่ยังไม่มี mid")
     return None
 
 # --- Flex Message ---
@@ -167,6 +198,20 @@ def get_current_oa_from_db(oa_id):
         for oa in user["oa_list"]:
             if oa["id"] == oa_id:
                 return oa
+    return None
+
+def get_api_oa_from_db(user_id):
+    user = mongo_db.users.find_one({
+        "oa_list.user_ids": user_id
+    })
+    if user and user.get("oa_list"):
+        # หา OA ที่ user_id อยู่ใน user_ids
+        for oa in user["oa_list"]:
+            if "user_ids" in oa and user_id in oa["user_ids"]:
+                return {
+                    "oa_id": oa.get("id"),
+                    "username": user.get("username")
+                }
     return None
 
 def add_user_id_to_oa(user, oa_id, user_id):
@@ -857,38 +902,7 @@ def switch_oa():
     session.pop("current_oa", None)
     return redirect(url_for("login"))
 
-# --- ส่งข้อความ/รูปภาพ ---
-def get_oa_id_from_mid(mid, target_oa_id=None):
-    # 1. ค้นหา mid ปกติ
-    result = mongo_db.users.find_one(
-        {"oa_list.mid": mid},
-        {"oa_list.$": 1}
-    )
-    if result and "oa_list" in result and result["oa_list"]:
-        return result["oa_list"][0]["id"]
-
-    # 2. หา OA ที่ยังไม่มี mid (ถ้ามีมากกว่า 1 ตัว ต้อง mapping manual)
-    users = list(mongo_db.users.find({}))
-    candidates = []
-    for user in users:
-        for idx, oa in enumerate(user.get("oa_list", [])):
-            if not oa.get("mid"):
-                candidates.append((user, idx, oa))
-
-    if len(candidates) == 1:
-        user, idx, oa = candidates[0]
-        mongo_db.users.update_one(
-            {"_id": user["_id"]},
-            {"$set": {f"oa_list.{idx}.mid": mid}}
-        )
-        print(f"[AUTO] Mapping mid {mid} → oa_id {oa['id']}")
-        return oa["id"]
-    elif len(candidates) > 1:
-        print("[ERROR] มี OA หลายตัวที่ยังไม่มี mid! ต้อง mapping เองใน admin ก่อนใช้งาน")
-    else:
-        print("[ERROR] ไม่พบ OA ที่ยังไม่มี mid")
-    return None
-
+# --- WEBHOOK ---
 @app.route("/line/webhook", methods=["POST"])
 def add_line_userid():
     data = request.get_json()
@@ -923,6 +937,21 @@ def add_line_userid():
     print("[ERROR] missing or invalid data")
     return jsonify({"status": "error", "msg": "missing or invalid data"}), 200
 
+@app.route("/api/get_oa_id", methods=["POST"])
+def api_get_oa_id():
+    data = request.get_json()
+    user_id = data.get("user_id")
+
+    if not user_id:
+        return jsonify({"error": "user_id is required"}), 400
+
+    result = get_api_oa_from_db(user_id)
+    if result:
+        return jsonify({"oa_id": result["oa_id"], "username": result["username"]})
+
+    return jsonify({"oa_id": None, "username": None}), 404
+
+# --- ส่งข้อความ/รูปภาพ ---
 @app.route("/send", methods=["GET", "POST"])
 @require_web_login
 @require_oa
@@ -1228,44 +1257,6 @@ def delete_flex_template(template_name):
     )
     flash(f"ลบ Template '{template_name}' เรียบร้อยแล้ว")
     return redirect(url_for("flex_templates_list"))  # แก้ตรงนี้!
-
-# @app.route('/upload_imgbb', methods=['POST'])
-# @require_web_login
-# def upload_imgbb():
-#     file = request.files['image']
-#     url = upload_to_imgbb(file)
-#     if url:
-#         return jsonify({"url": url})
-#     else:
-#         return jsonify({"error": "Upload failed"}), 400
-    
-# @app.route("/flex_templates", methods=["GET", "POST"])
-# @require_web_login
-# def flex_templates():
-#     username = session["user_login"]
-#     if request.method == "POST":
-#         name = request.form.get("template_name")
-#         flex_json = request.form.get("flex_json")
-#         import json as pyjson
-#         try:
-#             flex_content = pyjson.loads(flex_json)
-#             success = add_template(username, name, flex_content)
-#             if success:
-#                 flash("บันทึก Template เรียบร้อยแล้ว!")
-#             else:
-#                 flash("มีชื่อ Template นี้แล้ว")
-#         except Exception as e:
-#             flash(f"ไม่สามารถบันทึก Flex JSON นี้ได้: {e}")
-#         return redirect(url_for("flex_templates"))
-#     templates = get_user_templates(username)
-#     return render_template("flex_templates.html", templates=templates)
-
-# @app.route("/delete_flex_template/<template_name>", methods=["POST"])
-# @require_web_login
-# def delete_flex_template(template_name):
-#     delete_template(session["user_login"], template_name)
-#     flash("ลบ Template เรียบร้อยแล้ว")
-#     return redirect(url_for("flex_templates"))  # ชี้กลับหน้าใหม่
 
 # --- Progress & Cancel ตอนส่งข้อความ ---
 @app.route("/send_progress")
