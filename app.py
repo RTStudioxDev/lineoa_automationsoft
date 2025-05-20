@@ -986,8 +986,8 @@ def send_msg():
     )
 
 @app.route('/uploads/<filename>')
-# @require_web_login
 def uploaded_file(filename):
+    print("[DEBUG] upload request", request.remote_addr, dict(request.headers))
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 # --- FLEX MESSAGE ---
