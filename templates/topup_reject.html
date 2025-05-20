@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container my-5">
+    <h2 class="mb-4 text-danger">ปฏิเสธสลิปเติมเงิน</h2>
+    <div class="card shadow p-4">
+        <div class="mb-3">
+            <strong>ชื่อผู้ใช้:</strong> {{ slip.username }}
+        </div>
+        <div class="mb-3">
+            <strong>จำนวนเงิน:</strong> {{ slip.amount }} บาท
+        </div>
+        <div class="mb-3">
+            <strong>วัน-เวลา:</strong> {{ slip.created_at.strftime("%Y-%m-%d %H:%M:%S") }}
+        </div>
+        <div class="mb-3">
+            <strong>สถานะ:</strong>
+            <span class="badge bg-danger">{{ slip.status|capitalize }}</span>
+        </div>
+        <div class="mb-3">
+            <strong>รูปสลิป:</strong><br>
+            <img src="{{ url_for('static', filename='uploads/' ~ slip.image) }}"
+                 alt="สลิป" class="img-fluid border" style="max-width: 400px; margin-top: 10px;">
+        </div>
+        <form method="post">
+            <button type="submit" class="btn btn-danger btn-lg w-100">
+                ❌ ปฏิเสธสลิปนี้
+            </button>
+        </form>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary mt-3 w-100">ย้อนกลับ</a>
+    </div>
+</div>
+{% endblock %}

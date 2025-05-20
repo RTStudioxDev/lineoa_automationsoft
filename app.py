@@ -14,7 +14,7 @@ import time
 import uuid
 import csv
 import io
-import pprint
+import requests
 
 MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://admin:060843Za@telegrambot.f91jjzo.mongodb.net/")
 DB_NAME = os.getenv("DB_NAME", "Lineautomation")
@@ -248,6 +248,125 @@ def set_credit(username, value):
 def get_credit(username):
     user = mongo_db.users.find_one({"username": username})
     return user.get("credit", 0) if user else 0
+
+# --- ระบบแจ้งเตือนเติมเงิน ---
+TELEGRAM_BOT_TOKEN = "8007609460:AAHryP3dcvUmEVbaXEabARmtkr7d8YZhiKg"
+TELEGRAM_ADMIN_CHAT_ID = "7497889170"
+
+def notify_telegram_admin_topup(slip):
+    image_url = f"https://web-production-27dc.up.railway.app/uploads/{slip['image']}"
+    caption = (
+        f"💰 แจ้งเตือนเติมเงิน\n"
+        f"👤 User: {slip['username']}\n"
+        f"💵 จำนวน: {slip['amount']} บาท"
+    )
+    approve_data = f"approve_topup:{str(slip['_id'])}"
+    reject_data = f"reject_topup:{str(slip['_id'])}"
+    inline_keyboard = [
+        [
+            {"text": "✅ อนุมัติ", "callback_data": approve_data},
+            {"text": "❌ ปฏิเสธ", "callback_data": reject_data}
+        ]
+    ]
+
+    payload = {
+        "chat_id": TELEGRAM_ADMIN_CHAT_ID,
+        "photo": image_url,
+        "caption": caption,
+        "parse_mode": "Markdown",
+        "reply_markup": {
+            "inline_keyboard": inline_keyboard
+        }
+    }
+
+    resp = requests.post(
+        f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto",
+        json=payload  # !! ใช้ json ไม่ใช่ data
+    )
+    # print(f"Telegram notify response: {resp.status_code} {resp.text}")
+    return resp
+
+def set_status_with_disabled_button(chat_id, message_id, status, caption):
+    if status == "approved":
+        status_text = "\n\n✅ สถานะ: อนุมัติแล้ว"
+        new_keyboard = [[{"text": "✅ อนุมัติแล้ว", "callback_data": "noop"}]]
+    elif status == "rejected":
+        status_text = "\n\n❌ สถานะ: ปฏิเสธแล้ว"
+        new_keyboard = [[{"text": "❌ ปฏิเสธแล้ว", "callback_data": "noop"}]]
+    else:
+        status_text = ""
+        new_keyboard = []
+
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/editMessageCaption"
+    resp = requests.post(url, json={
+        "chat_id": chat_id,
+        "message_id": message_id,
+        "caption": (caption or "") + status_text,
+        "parse_mode": "Markdown",
+        "reply_markup": {"inline_keyboard": new_keyboard}
+    })
+    # print('editMessageCaption:', resp.status_code, resp.text)
+
+@app.route('/webhook/telegram', methods=['POST'])
+def telegram_webhook():
+    update = request.get_json()
+    if "callback_query" in update:
+        callback = update["callback_query"]
+        data = callback["data"]
+        chat_id = callback["message"]["chat"]["id"]
+        message_id = callback["message"]["message_id"]
+
+        if data.startswith("approve_topup:"):
+            slip_id = data.split(":")[1]
+            slip = mongo_db.topup_slips.find_one({"_id": ObjectId(slip_id)})
+            if slip and slip.get("status") == "pending":
+                mongo_db.users.update_one(
+                    {"username": slip["username"]},
+                    {"$inc": {"credit": int(slip["amount"])}}
+                )
+                mongo_db.topup_slips.update_one(
+                    {"_id": ObjectId(slip_id)},
+                    {"$set": {"status": "approved", "approved_at": datetime.now()}}
+                )
+                answer = "✅ อนุมัติสลิปเรียบร้อย"
+                set_status_with_disabled_button(
+                    chat_id,
+                    message_id,
+                    "approved",
+                    callback["message"].get("caption", "")
+                )
+            else:
+                answer = "ไม่พบสลิปนี้หรือถูกอนุมัติ/ปฏิเสธไปแล้ว"
+
+        elif data.startswith("reject_topup:"):
+            slip_id = data.split(":")[1]
+            mongo_db.topup_slips.update_one(
+                {"_id": ObjectId(slip_id)},
+                {"$set": {"status": "rejected", "rejected_at": datetime.now()}}
+            )
+            answer = "❌ ปฏิเสธสลิปนี้แล้ว"
+            set_status_with_disabled_button(
+                chat_id,
+                message_id,
+                "rejected",
+                callback["message"].get("caption", "")
+            )
+
+        elif data == "noop":
+            # กดปุ่มที่ไม่มี action (เช่น "อนุมัติแล้ว" หรือ "ปฏิเสธแล้ว")
+            answer = "สถานะนี้ไม่สามารถกดซ้ำได้"
+
+        else:
+            answer = "เกิดข้อผิดพลาด ไม่ทราบคำสั่ง"
+
+        # ตอบกลับ callback (ขึ้น popup ในแชท)
+        reply_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/answerCallbackQuery"
+        requests.post(reply_url, json={
+            "callback_query_id": callback["id"],
+            "text": answer, "show_alert": True
+        })
+
+    return jsonify({"ok": True})
 
 # --- REQUIRE ---
 def require_web_login(func):
@@ -563,7 +682,7 @@ def topup():
             filename = secure_filename(f"{session['user_login']}_{int(time.time())}_{file.filename}")
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
-            mongo_db.topup_slips.insert_one({
+            slip = {
                 "username": session['user_login'],
                 "amount": amount,
                 "type": "slip",
@@ -571,9 +690,12 @@ def topup():
                 "qr_ref": "123456",
                 "status": "pending",
                 "created_at": datetime.now()
-            })
+            }
+            result = mongo_db.topup_slips.insert_one(slip)
+            slip['_id'] = result.inserted_id  # เพิ่ม _id ให้ slip
+            notify_telegram_admin_topup(slip)  # เรียกฟังก์ชันแจ้งเตือน Telegram
             flash("อัปโหลดสลิปสำเร็จ กรุณารอแอดมินตรวจสอบ")
-            return redirect(url_for("topup"))
+            return redirect(url_for("topup_history"))
         else:
             flash("กรุณาแนบไฟล์สลิปที่ถูกต้อง")
     return render_template("topup_slip.html")
@@ -587,6 +709,37 @@ def topup_history():
     # filter เฉพาะของ user นั้นๆ และเรียงล่าสุดไว้บน
     slips = list(mongo_db.topup_slips.find({"username": username}).sort("created_at", -1))
     return render_template("topup_history.html", slips=slips)
+
+@app.route('/topup_approve/<slip_id>', methods=['GET', 'POST'])
+@require_admin
+def topup_approve(slip_id):
+    slip = mongo_db.topup_slips.find_one({"_id": ObjectId(slip_id)})
+    if not slip:
+        return "ไม่พบข้อมูลสลิปนี้", 404
+    if request.method == 'POST':
+        mongo_db.topup_slips.update_one(
+            {"_id": ObjectId(slip_id)},
+            {"$set": {"status": "approved", "approved_at": datetime.now()}}
+        )
+        # (option) แจ้ง LINE OA
+        flash("อนุมัติสลิปสำเร็จ!")
+        return redirect(url_for('admin_dashboard'))
+    return render_template("topup_approve.html", slip=slip)
+
+@app.route('/topup_reject/<slip_id>', methods=['GET', 'POST'])
+@require_admin
+def topup_reject(slip_id):
+    slip = mongo_db.topup_slips.find_one({"_id": ObjectId(slip_id)})
+    if not slip:
+        return "ไม่พบข้อมูลสลิปนี้", 404
+    if request.method == 'POST':
+        mongo_db.topup_slips.update_one(
+            {"_id": ObjectId(slip_id)},
+            {"$set": {"status": "rejected", "rejected_at": datetime.now()}}
+        )
+        flash("ปฏิเสธสลิปแล้ว!")
+        return redirect(url_for('admin_dashboard'))
+    return render_template("topup_reject.html", slip=slip)
 
 # --- OA SELECTOR ---
 @app.route("/", methods=["GET", "POST"])
@@ -833,7 +986,7 @@ def send_msg():
     )
 
 @app.route('/uploads/<filename>')
-@require_web_login
+# @require_web_login
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
