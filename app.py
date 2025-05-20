@@ -250,11 +250,23 @@ def get_credit(username):
     return user.get("credit", 0) if user else 0
 
 # --- ระบบแจ้งเตือนเติมเงิน ---
+def upload_to_imgbb(file, api_key="38fff7fc24bb2d14a0729f5f50e6f17f"):
+    url = "https://api.imgbb.com/1/upload"
+    payload = {"key": api_key}
+    files = {"image": (file.filename, file.stream, file.mimetype)}
+    response = requests.post(url, data=payload, files=files)
+    if response.status_code == 200:
+        data = response.json()
+        return data["data"]["url"]
+    else:
+        print("[IMGBB ERROR]", response.text)
+        return None
+
 TELEGRAM_BOT_TOKEN = "8007609460:AAHryP3dcvUmEVbaXEabARmtkr7d8YZhiKg"
 TELEGRAM_ADMIN_CHAT_ID = "7497889170"
 
 def notify_telegram_admin_topup(slip):
-    image_url = f"https://web-production-27dc.up.railway.app/uploads/{slip['image']}"
+    image_url = slip['image']
     caption = (
         f"💰 แจ้งเตือนเติมเงิน\n"
         f"👤 User: {slip['username']}\n"
@@ -679,26 +691,55 @@ def topup():
         amount = int(request.form['amount'])
         file = request.files['slip']
         if file and allowed_file(file.filename):
-            filename = secure_filename(f"{session['user_login']}_{int(time.time())}_{file.filename}")
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(filepath)
+            imgbb_url = upload_to_imgbb(file)
+            if not imgbb_url:
+                flash("อัปโหลดรูปสลิปไม่สำเร็จ กรุณาลองใหม่")
+                return redirect(url_for("topup"))
             slip = {
                 "username": session['user_login'],
                 "amount": amount,
                 "type": "slip",
-                "image": filename,
+                "image": imgbb_url,
                 "qr_ref": "123456",
                 "status": "pending",
                 "created_at": datetime.now()
             }
             result = mongo_db.topup_slips.insert_one(slip)
-            slip['_id'] = result.inserted_id  # เพิ่ม _id ให้ slip
-            notify_telegram_admin_topup(slip)  # เรียกฟังก์ชันแจ้งเตือน Telegram
+            slip['_id'] = result.inserted_id
+            notify_telegram_admin_topup(slip)
             flash("อัปโหลดสลิปสำเร็จ กรุณารอแอดมินตรวจสอบ")
             return redirect(url_for("topup_history"))
         else:
             flash("กรุณาแนบไฟล์สลิปที่ถูกต้อง")
     return render_template("topup_slip.html")
+
+# @app.route('/topup', methods=['GET', 'POST'])
+# @require_web_login
+# def topup():
+#     if request.method == 'POST':
+#         amount = int(request.form['amount'])
+#         file = request.files['slip']
+#         if file and allowed_file(file.filename):
+#             filename = secure_filename(f"{session['user_login']}_{int(time.time())}_{file.filename}")
+#             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+#             file.save(filepath)
+#             slip = {
+#                 "username": session['user_login'],
+#                 "amount": amount,
+#                 "type": "slip",
+#                 "image": filename,
+#                 "qr_ref": "123456",
+#                 "status": "pending",
+#                 "created_at": datetime.now()
+#             }
+#             result = mongo_db.topup_slips.insert_one(slip)
+#             slip['_id'] = result.inserted_id  # เพิ่ม _id ให้ slip
+#             notify_telegram_admin_topup(slip)  # เรียกฟังก์ชันแจ้งเตือน Telegram
+#             flash("อัปโหลดสลิปสำเร็จ กรุณารอแอดมินตรวจสอบ")
+#             return redirect(url_for("topup_history"))
+#         else:
+#             flash("กรุณาแนบไฟล์สลิปที่ถูกต้อง")
+#     return render_template("topup_slip.html")
 
 @app.route('/topup-history')
 def topup_history():
