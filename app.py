@@ -283,7 +283,7 @@ def notify_telegram_admin_topup(slip):
         f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto",
         json=payload  # !! ใช้ json ไม่ใช่ data
     )
-    # print(f"Telegram notify response: {resp.status_code} {resp.text}")
+    print(f"Telegram notify response: {resp.status_code} {resp.text}")
     return resp
 
 def set_status_with_disabled_button(chat_id, message_id, status, caption):
