@@ -1,87 +1,25 @@
 {% extends "base.html" %}
 {% block content %}
-    <h2>ส่ง Flex Message (Rich Message)</h2>
-    <form method="post">
-        <label>เลือก Template ที่บันทึกไว้:</label>
-        <select id="template_select" onchange="onSelectTemplate(this)">
-            <option value="">-- เลือกหรือสร้างใหม่ --</option>
+    <h2>ส่งริชเมสเสจ</h2>
+    <form method="post" id="send-flex-form">
+        <label>เลือกริชเมสเสจที่บันทึกไว้:</label>
+        <select id="template_select" name="selected_template" onchange="onSelectTemplate(this)">
+            <option value="">-- เลือกริชเมสเสจ --</option>
             {% for temp in templates %}
                 <option value="{{ temp.name }}" {% if selected_template == temp.name %}selected{% endif %}>{{ temp.name }}</option>
             {% endfor %}
         </select>
-        <br>
-        <label>Flex JSON ตัวอย่าง(แก้ไขได้):</label><br>
-        <textarea id="flex_json" name="flex_json" rows="18" cols="70" required style="width:100%;font-family:monospace;">
-{{ flex_json or
-'''{
-  "type": "bubble",
-  "hero": {
-    "type": "image",
-    "url": "https://www.linefriends.com/img/myimg.png",
-    "size": "full",
-    "aspectRatio": "1040:1040",
-    "aspectMode": "cover",
-    "action": {
-      "type": "uri",
-      "label": "action",
-      "uri": "http://linecorp.com/"
-    }
-  },
-  "body": {
-    "type": "box",
-    "layout": "horizontal",
-    "contents": [
-      {
-        "type": "box",
-        "layout": "vertical",
-        "backgroundColor": "#d1fae5",
-        "cornerRadius": "10px",
-        "paddingAll": "10px",
-        "contents": [
-          {
-            "type": "text",
-            "text": "ทดสอบ",
-            "weight": "bold",
-            "size": "sm",
-            "action": {
-              "type": "uri",
-              "label": "",
-              "uri": "http://linecorp.com/"
-            },
-            "wrap": true,
-            "align": "center",
-            "color": "#228B22"
-          }
-        ]
-      }
-    ],
-    "borderWidth": "none",
-    "backgroundColor": "#d1fae5",
-    "paddingAll": "none",
-    "paddingTop": "none",
-    "paddingBottom": "none",
-    "paddingStart": "none",
-    "paddingEnd": "none",
-    "offsetTop": "none",
-    "offsetBottom": "none",
-    "offsetStart": "none",
-    "offsetEnd": "none"
-  }
-}'''
-}}
-        </textarea>
+        <!-- ซ่อน Flex JSON -->
+        <input type="hidden" id="flex_json" name="flex_json" value='{{ flex_json|tojson if flex_json else "" }}'>
+
         <!-- Flex Live Preview -->
         <div style="margin:30px 0 0 0;">
-          <label style="font-weight:bold;color:#165a31;">ตัวอย่าง Flex ก่อนส่ง:</label>
-          <div id="flex_preview"
-              style="background:#fff;border-radius:20px;box-shadow:0 2px 24px #ccc;padding:18px 28px;width:400px;min-height:220px;max-width:99vw;">
-              <em>ใส่ Flex JSON ด้านบนเพื่อแสดงตัวอย่างที่นี่...</em>
-          </div>
-      </div>
-        <br>
-
-        <label>ชื่อตอนส่ง Flex:</label>
-        <input type="text" name="alt_text" value="(ใส่ข้อความที่จะส่งพร้อม Flex)">
+            <label style="font-weight:bold;color:#165a31;">ตัวอย่างริชเมสเสจก่อนส่ง:</label>
+            <div id="flex_preview"
+                style="background:#fff;border-radius:20px;box-shadow:0 2px 24px #ccc;padding:18px 28px;width:400px;min-height:220px;max-width:99vw;">
+                <em>เลือกริชเมสเสจเพื่อดูตัวอย่าง...</em>
+            </div>
+        </div>
         <br>
         <label>ส่งถึง:</label>
         <select name="target" required>
@@ -92,207 +30,135 @@
         </select>
         <br>
         <div style="display:flex; gap: 14px;">
-          <button type="submit" class="btn">
-            <span style="font-size:1.15em;vertical-align:middle;margin-right:6px;">🚀</span>
-            เริ่มส่งข้อความแบบ Flex
-          </button>
-          <a href="https://developers.line.biz/flex-simulator/" target="_blank" rel="noopener" 
-            class="btn btn-outline" style="background:#fff;color:#008f36;border:2px solid #008f36;font-weight:600;">
-              <span style="vertical-align:middle;">สร้าง Flex (LINE Flex Simulator)</span>
-              <svg style="vertical-align:middle;margin-left:4px;" width="18" height="18" viewBox="0 0 20 20" fill="none">
-                  <path d="M7 13L13 7M13 7H8M13 7V12" stroke="#008f36" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-          </a>
-      </div>
-    </form>
-    <!-- Progress Popup Modal -->
-  <div id="sendProgressModal" class="progress-modal" style="display:none;">
-    <div class="progress-modal-content">
-      <span class="progress-title">🚀 กำลังส่ง Flex Message...</span>
-      <div class="progress-info">
-        <span id="progressStatusText">เริ่มต้นส่ง...</span>
-        <div class="progress-bar-container">
-          <div id="progressBar" class="progress-bar"></div>
+            <button type="submit" class="btn">
+                <span style="font-size:1.15em;vertical-align:middle;margin-right:6px;">🚀</span>
+                เริ่มส่งข้อความริชเมสเสจ
+            </button>
+            <a href="{{ url_for('flex_templates_list') }}" target="_blank" rel="noopener"
+                class="btn btn-outline" style="background:#fff;color:#008f36;border:2px solid #008f36;font-weight:600;">
+                <span style="vertical-align:middle;">สร้างริชเมสเสจ</span>
+                <svg style="vertical-align:middle;margin-left:4px;" width="18" height="18" viewBox="0 0 20 20" fill="none">
+                    <path d="M7 13L13 7M13 7H8M13 7V12" stroke="#008f36" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </a>
         </div>
-        <span id="progressCount"></span>
-      </div>
-      <button id="cancelSendBtn" class="btn btn-danger">⏹️ หยุดการส่ง</button>
-    </div>
-  </div>
-    <br>
-    <h3>บันทึก Flex Template</h3>
-    <form method="post" action="{{ url_for('save_flex_template') }}">
-        <label>ชื่อ Template:</label>
-        <input type="text" name="template_name" required>
-        <br>
-        <label>Flex JSON ที่ต้องการบันทึก:</label><br>
-        <textarea name="flex_json" id="save_flex_json" style="width:100%;height:300px;">{{ flex_json|e }}</textarea>
-        <br>
-        <button type="submit">บันทึกเป็น Template</button>
     </form>
-    {% if templates %}
-      <h4>รายการ Flex Template ที่บันทึกไว้</h4>
-      <table style="width:100%;margin-bottom:18px;">
-        <tr>
-          <th style="text-align:left;">ชื่อ Template</th>
-          <th style="text-align:center;width:80px;">ลบ</th>
-        </tr>
-        {% for temp in templates %}
-          <tr>
-            <td style="padding:6px 12px;">{{ temp.name }}</td>
-            <td style="text-align:center;">
-              <form method="post" action="{{ url_for('delete_flex_template', template_name=temp.name) }}"
-                    onsubmit="return confirm('ยืนยันการลบ Template: {{ temp.name }} ?');" style="display:inline;">
-                <button type="submit" class="btn btn-danger" style="padding:3px 12px;font-size:1em;">ลบ</button>
-              </form>
-            </td>
-          </tr>
-        {% endfor %}
-      </table>
-    {% endif %}
-    <script>
-      // Sync textarea หลักกับ textarea save template
-      document.addEventListener('DOMContentLoaded', function() {
-          var flexMain = document.getElementById('flex_json');
-          var flexSave = document.getElementById('save_flex_json');
-          if (flexMain && flexSave) flexSave.value = flexMain.value;
-          if (flexMain && flexSave) {
-              flexMain.addEventListener('input', function() {
-                  flexSave.value = flexMain.value;
-              });
-          }
-      });
-      // ถ้าเลือก template, redirect พร้อม query string เพื่อโหลด JSON ใส่ฟอร์ม
-      function onSelectTemplate(sel) {
-          var name = sel.value;
-          if (name) {
-              window.location.href = "?selected_template=" + encodeURIComponent(name);
-          } else {
-              window.location.href = "?";
-          }
-      }
-      function openFlexPreview() {
-        var json = document.getElementById('flex_json').value;
-        var encoded = btoa(unescape(encodeURIComponent(json)));
-        var url = "https://developers.line.biz/flex-simulator/#data=" + encoded;
-        window.open(url, "_blank");
-      }
-      
-      function parseAspectRatio(ratioStr) {
-        // รับเป็น "20:13", "1.51:1" หรือ "4:3"
-        if (!ratioStr) return [20,13]; // default LINE
-        let s = ratioStr.split(':');
-        if (s.length === 2) return [+s[0], +s[1]];
-        if (s.length === 1 && !isNaN(+s[0])) return [+s[0], 1];
-        return [20,13];
-      }
 
-      // ==== Live Flex Preview ====
-      function renderFlexPreview() {
-          let json;
-          try {
-              json = JSON.parse(document.getElementById('flex_json').value);
-          } catch {
-              document.getElementById('flex_preview').innerHTML =
-                  '<span style="color:#e74c3c">⚠️ Flex JSON ไม่ถูกต้อง</span>';
-              return;
+    <!-- Progress Popup Modal -->
+    <div id="sendProgressModal" class="progress-modal" style="display:none;">
+        <div class="progress-modal-content">
+            <span class="progress-title">🚀 กำลังส่งริชเมสเสจ...</span>
+            <div class="progress-info">
+                <span id="progressStatusText">เริ่มต้นส่ง...</span>
+                <div class="progress-bar-container">
+                    <div id="progressBar" class="progress-bar"></div>
+                </div>
+                <span id="progressCount"></span>
+            </div>
+            <button id="cancelSendBtn" class="btn btn-danger">⏹️ หยุดการส่ง</button>
+        </div>
+    </div>
+
+  <script>
+    // @ts-nocheck
+    window.templates = {{ templates|tojson|safe }};
+    const templateSelect = document.getElementById('template_select');
+    const previewDiv = document.getElementById('flex_preview');
+    const flexJsonInput = document.getElementById('flex_json');
+    let sendProgressInterval;
+
+    templateSelect.onchange = function() {
+      const name = this.value;
+      let flexJson = "";
+      if (name) {
+          const found = window.templates.find(t => t.name === name);
+          if (found) {
+              flexJson = JSON.stringify(found.json, null, 2);
+              flexJsonInput.value = flexJson;
+              renderFlexPreviewFromJson(flexJson);
           }
-          let html = '';
-          // Hero image
-          if (json.hero && json.hero.url) {
-              let aspectRatio = [20, 13];
-              let arStr = json.hero.aspectRatio || "";
-              if (arStr) aspectRatio = parseAspectRatio(arStr);
-              let w = 320;  // กำหนดความกว้าง preview (หรือใช้ 340, 360 ได้)
-              let h = Math.round(w * aspectRatio[1] / aspectRatio[0]);
-              let aspectMode = (json.hero.aspectMode || 'cover');
-              let fitStyle = (aspectMode === 'fit')
-                  ? "object-fit:contain;background:#f8f8f8;"
-                  : "object-fit:cover;background:#f8f8f8;";
-              // รองรับ backgroundColor ของ bubble
-              let bubbleBg = json.body && json.body.contents &&
-                            json.body.contents[0] && json.body.contents[0].backgroundColor
-                            ? json.body.contents[0].backgroundColor : '#cfeaf4';
-              html += `<div style="width:${w}px;margin:0 auto;border-radius:18px;overflow:hidden;background:${bubbleBg};box-shadow:0 2px 24px #ccc;">
-                  <img src="${json.hero.url}" alt="" 
-                      style="display:block;width:100%;height:${h}px;${fitStyle}">
-              `;
-              // ตรวจสอบว่ามี body หรือ footer จะแสดงต่อในกล่องเดียวกัน
-              html += '<div style="padding:6px 0;text-align:center">';
-              // ข้อความหัวข้อ
-              if (json.body && json.body.contents && json.body.contents[0]) {
-                  let t = json.body.contents[0];
-                  if (t.type === "box" && t.contents && t.contents[0] && t.contents[0].type === "text") {
-                      html += `<div style="font-size:1.1em;font-weight:bold;color:${t.contents[0].color||'#228B22'}">${t.contents[0].text||''}</div>`;
-                  } else if (t.type === "text") {
-                      html += `<div style="font-size:1.1em;font-weight:bold;color:${t.color||'#228B22'}">${t.text||''}</div>`;
-                  }
-              }
-              html += '</div></div>';
-              // แสดง aspectRatio ด้านล่าง
-              if (arStr) {
-                  html += `<div style="text-align:center;font-size:.97em;color:#666;margin:3px 0 0 0;">ขนาดของรูป: ${arStr}</div>`;
-              }
-          }
-          // Body
-          if (json.body && json.body.contents) {
-              html += '<div style="padding:18px 0;">';
-              for (let c of json.body.contents) {
-                  if (c.type === "text") {
-                      html += `<div style="font-size:${c.size=='xl'?'1.4em':'1em'};font-weight:${c.weight=='bold'?'bold':'normal'};color:${c.color||'#222'};margin-bottom:8px;">${c.text||''}</div>`;
-                  }
-              }
-              html += '</div>';
-          }
-          // Footer (buttons)
-          if (json.footer && json.footer.contents) {
-              html += '<div style="display:flex;gap:14px;">';
-              for (let c of json.footer.contents) {
-                  if (c.type === "button" && c.action) {
-                      let label = c.action.label || "ปุ่ม";
-                      html += `<a href="${c.action.uri||'#'}" target="_blank"
-                          style="background:#008f36;color:#fff;padding:8px 20px;border-radius:8px;text-decoration:none;font-weight:600;box-shadow:0 2px 8px #c9f7d2;">
-                          ${label}
-                      </a>`;
-                  }
-              }
-              html += '</div>';
-          }
-          if (!html) html = '<em>ไม่พบเนื้อหาใน Flex JSON</em>';
-          document.getElementById('flex_preview').innerHTML = html;
+      } else {
+          previewDiv.innerHTML = '<em>เลือกริชเมสเสจเพื่อดูตัวอย่าง...</em>';
+          flexJsonInput.value = "";
       }
+    };
 
-      document.getElementById('flex_json').addEventListener('input', renderFlexPreview);
-      document.addEventListener('DOMContentLoaded', renderFlexPreview);
+    function renderFlexPreviewFromJson(jsonStr) {
+        let json;
+        try { json = typeof jsonStr === 'string' ? JSON.parse(jsonStr) : jsonStr; }
+        catch { previewDiv.innerHTML = '<span style="color:#e74c3c">⚠️ Flex JSON ไม่ถูกต้อง</span>'; return; }
+        let html = '';
+        if (json.hero && json.hero.url) {
+            let aspectRatio = [20, 13];
+            let arStr = json.hero.aspectRatio || "";
+            if (arStr) {
+                let s = arStr.split(":");
+                if (s.length === 2) aspectRatio = [+s[0], +s[1]];
+            }
+            let w = 320;
+            let h = Math.round(w * aspectRatio[1] / aspectRatio[0]);
+            let aspectMode = (json.hero.aspectMode || 'cover');
+            let fitStyle = (aspectMode === 'fit')
+                ? "object-fit:contain;background:#f8f8f8;"
+                : "object-fit:cover;background:#f8f8f8;";
+            html += `<div style="width:${w}px;margin:0 auto;border-radius:18px;overflow:hidden;box-shadow:0 2px 24px #ccc;">
+                <img src="${json.hero.url}" alt="" 
+                    style="display:block;width:100%;height:${h}px;${fitStyle}">
+            `;
+            html += '<div style="padding:6px 0;text-align:center">';
+            if (json.body && json.body.contents && json.body.contents[0]) {
+                let t = json.body.contents[0];
+                if (t.type === "box" && t.contents && t.contents[0] && t.contents[0].type === "text") {
+                    html += `<div style="font-size:1.1em;font-weight:bold;color:${t.contents[0].color||'#228B22'}">${t.contents[0].text||''}</div>`;
+                } else if (t.type === "text") {
+                    html += `<div style="font-size:1.1em;font-weight:bold;color:${t.color||'#228B22'}">${t.text||''}</div>`;
+                }
+            }
+            html += '</div></div>';
+            if (arStr) {
+                html += `<div style="text-align:center;font-size:.97em;color:#666;margin:3px 0 0 0;">ขนาดของรูป: ${arStr}</div>`;
+            }
+        }
+        if (!html) html = '<em>ไม่พบเนื้อหาใน Flex JSON</em>';
+        previewDiv.innerHTML = html;
+    }
 
-      document.querySelector("form").onsubmit = function(e) {
-      openSendModal();
-      sendProgressInterval = setInterval(function() {
-        fetch('/send_progress').then(r=>r.json()).then(d=>{
-          updateProgressUI(d.current, d.total, d.fail || 0);
-          if (d.done) {
-            setTimeout(closeSendModal, 1000);
-            clearInterval(sendProgressInterval);
-          }
-        });
-      }, 800);
+    // Show preview เมื่อ load page
+    document.addEventListener('DOMContentLoaded', function() {
+        let sel = templateSelect.value;
+        if (sel) templateSelect.onchange();
+        else previewDiv.innerHTML = '<em>เลือกริชเมสเสจเพื่อดูตัวอย่าง...</em>';
+    });
+
+    // Progress Modal เหมือนเดิม
+    document.getElementById('send-flex-form').onsubmit = function(e) {
+        openSendModal();
+        sendProgressInterval = setInterval(function() {
+            fetch('/send_progress').then(r=>r.json()).then(d=>{
+                updateProgressUI(d.current, d.total, d.fail || 0);
+                if (d.done) {
+                    setTimeout(closeSendModal, 1000);
+                    clearInterval(sendProgressInterval);
+                }
+            });
+        }, 800);
     };
     document.getElementById('cancelSendBtn').onclick = function() {
-      fetch('/cancel_send', {method:'POST'}).then(()=>window.location.reload());
+        fetch('/cancel_send', {method:'POST'}).then(()=>window.location.reload());
     };
     function openSendModal() {
-      document.getElementById('sendProgressModal').style.display = "flex";
-      updateProgressUI(0, 0, 0);
+        document.getElementById('sendProgressModal').style.display = "flex";
+        updateProgressUI(0, 0, 0);
     }
     function closeSendModal() {
-      document.getElementById('sendProgressModal').style.display = "none";
+        document.getElementById('sendProgressModal').style.display = "none";
     }
     function updateProgressUI(current, total, fail) {
-      let percent = total ? Math.floor((current/total)*100) : 0;
-      document.getElementById('progressBar').style.width = percent + "%";
-      document.getElementById('progressStatusText').innerText =
-        `ส่งแล้ว ${current} / ${total} คน${fail ? ", ล้มเหลว " + fail + " คน" : ""}`;
-      document.getElementById('progressCount').innerText = `(${percent}% เสร็จสิ้น)`;
+        let percent = total ? Math.floor((current/total)*100) : 0;
+        document.getElementById('progressBar').style.width = percent + "%";
+        document.getElementById('progressStatusText').innerText =
+            `ส่งแล้ว ${current} / ${total} คน${fail ? ", ล้มเหลว " + fail + " คน" : ""}`;
+        document.getElementById('progressCount').innerText = `(${percent}% เสร็จสิ้น)`;
     }
-    </script>
+</script>
 {% endblock %}

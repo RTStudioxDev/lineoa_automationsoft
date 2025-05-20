@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;">
+    <h2>รายการริชเมสเสจ</h2>
+    <a href="{{ url_for('flex_templates_create') }}" class="btn btn-success">สร้างริชเมสเสจใหม่</a>
+</div>
+<hr>
+<table class="table table-bordered align-middle" style="background: #fff;">
+    <thead class="table-light">
+        <tr>
+            <th style="width:80px;">รูป</th>
+            <th style="width:180px;">ชื่อ</th>
+            <th style="width:90px;">ประเภท</th>
+            <th>รายละเอียด</th>
+            <th style="width:160px;">วันที่สร้าง</th>
+            <th style="width:160px;">จัดการ</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for t in templates %}
+        <tr>
+            <td>
+                {% if t.json.hero and t.json.hero.url %}
+                    <img src="{{ t.json.hero.url }}" style="max-width:70px;max-height:70px;border-radius:7px;border:1px solid #eee;">
+                {% endif %}
+            </td>
+            <td>{{ t.name }}</td>
+            <td>
+                {% if t.json.hero.action.type == "uri" %}
+                    <span class="badge bg-primary">ลิงก์</span>
+                {% elif t.json.hero.action.type == "message" %}
+                    <span class="badge bg-success">ข้อความ</span>
+                {% else %}
+                    <span class="badge bg-secondary">-</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if t.json.hero.action.type == "uri" %}
+                    <div style="color:#2970fa;font-size:0.98em;word-break:break-all;">
+                        <a href="{{ t.json.hero.action.uri }}" target="_blank">{{ t.json.hero.action.uri }}</a>
+                    </div>
+                {% elif t.json.hero.action.type == "message" %}
+                    <div style="color:#333;font-size:1em;">{{ t.json.hero.action.text }}</div>
+                {% endif %}
+            </td>
+            <td>
+                {% if t.created_at %}
+                    {{ t.created_at.strftime('%d/%m/%Y %H:%M') }}
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            <td>
+                <div class="flex-action-btns">
+                    <a href="{{ url_for('flex_templates_edit', template_name=t.name) }}" class="btn-edit">แก้ไข</a>
+                    <form action="{{ url_for('delete_flex_template', template_name=t.name) }}" method="post" style="display:inline;" onsubmit="return confirm('ต้องการลบเทมเพลตนี้ใช่หรือไม่?');">
+                        <button type="submit" class="btn-delete">ลบ</button>
+                    </form>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+        {% if not templates %}
+        <tr>
+            <td colspan="6" class="text-center text-muted py-4">ยังไม่มีริชเมสเสจที่บันทึกไว้</td>
+        </tr>
+        {% endif %}
+    </tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>สร้างริชเมสเสจ</h2>
+<form id="flex-form" method="POST" enctype="multipart/form-data" action="{{ url_for('flex_templates_create') }}">
+    <div class="mb-3">
+        <label for="template_name" style="font-weight:bold;">ชื่อไอเทม</label>
+        <input type="text" name="template_name" id="template_name" class="form-control" maxlength="100" required>
+        <input type="hidden" id="alt_text" name="alt_text">
+        <small class="form-text text-muted">ชื่อจะถูกแสดงในรายการแจ้งเตือนแบบทุกรายการและรายการชื่อเล่น</small>
+    </div>
+    
+    <!-- อัปโหลดรูป -->
+    <div class="upload-area">
+        <label class="upload-preview" id="drop-zone" style="cursor:pointer;">
+            <span id="preview-placeholder">เลือกภาพ<br>หรือวางไฟล์ที่นี่</span>
+            <img id="preview-img" style="display:none;" />
+            <input type="file" id="input-image" name="image" accept="image/*" class="d-none">
+        </label>
+        <div>
+            <button type="button" class="upload-btn" id="select-btn">เลือก</button>
+            <div style="margin:6px 0 0 0;font-size:0.98rem;">
+                <span style="color:#333;">รูป</span>
+            </div>
+            <small>ไฟล์ PNG, JPG ขนาดไม่เกิน 5MB</small>
+            <input type="hidden" id="uploaded-url" name="uploaded_url">
+            <input type="hidden" id="aspect-ratio" name="aspect_ratio">
+        </div>
+    </div>
+
+    <!-- ประเภท -->
+    <div class="mb-3">
+        <label for="type-select" style="font-weight:bold;">ประเภท</label>
+        <select id="type-select" class="form-select" name="flex_type" required>
+            <option value="">เลือก</option>
+            <option value="link">ลิงก์</option>
+            <option value="message">ข้อความ</option>
+        </select>
+    </div>
+    
+    <!-- ลิงก์ -->
+    <div id="input-link" style="display:none;" class="mb-3">
+        <label for="input-url" style="font-weight:bold;">ใส่ลิงก์</label>
+        <input type="text" id="input-url" class="form-control" placeholder="ใส่ลิงก์" maxlength="200">
+        <small class="form-text text-muted">ใส่ลิงก์เพื่อแสดงบนป้ายแอ็กชัน เช่น เปิดลิงก์, ดูเว็บไซต์</small>
+        <textarea class="form-control mt-2" rows="2" maxlength="100" placeholder="ใส่ข้อความเพื่อแสดงบนป้ายแอ็กชัน เช่น เปิดลิงก์, ดูเว็บไซต์" id="input-link-label"></textarea>
+        <div class="text-end"><span id="link-label-count">0</span>/100</div>
+    </div>
+    <!-- ข้อความ -->
+    <div id="input-message" style="display:none;" class="mb-3">
+        <label for="input-text" style="font-weight:bold;">ใส่ข้อความ</label>
+        <textarea class="form-control" rows="2" maxlength="50" placeholder="ใส่ข้อความ" id="input-text"></textarea>
+        <small class="form-text text-muted">ข้อความนี้จะถูกส่งไปยังห้องแชทโดยอัตโนมัติเมื่อผู้ใช้แตะป้ายนี้</small>
+        <div class="text-end"><span id="msg-count">0</span>/50</div>
+    </div>
+    
+    <input type="hidden" id="flex_json" name="flex_json">
+    <button type="submit" class="btn btn-success btn-lg w-25" style="margin:auto;display:block;">บันทึก</button>
+</form>
+
+<script>
+document.getElementById('template_name').addEventListener('input', function() {
+document.getElementById('alt_text').value = this.value;
+});
+document.getElementById('alt_text').value = document.getElementById('template_name').value;
+
+document.addEventListener("DOMContentLoaded", function() {
+    // Elements ฟอร์ม Flex
+    const typeSelect = document.getElementById("type-select");
+    const inputLink = document.getElementById("input-link");
+    const inputMsg = document.getElementById("input-message");
+    const inputUrl = document.getElementById("input-url");
+    const inputText = document.getElementById("input-text");
+    const linkLabel = document.getElementById("input-link-label");
+    const linkLabelCount = document.getElementById("link-label-count");
+    const msgCount = document.getElementById("msg-count");
+
+    // Elements อัปโหลดรูป
+    const dropZone = document.getElementById('drop-zone');
+    const inputFile = document.getElementById('input-image');
+    const selectBtn = document.getElementById('select-btn');
+    const previewImg = document.getElementById('preview-img');
+    const placeholder = document.getElementById('preview-placeholder');
+    let realImageWidth = 0;
+    let realImageHeight = 0;  
+
+    // สลับช่องลิงก์/ข้อความ
+    typeSelect.addEventListener("change", function() {
+        inputLink.style.display = (this.value === "link") ? "block" : "none";
+        inputMsg.style.display = (this.value === "message") ? "block" : "none";
+    });
+
+    // ตัวนับจำนวนอักษร
+    if (linkLabel) {
+        linkLabel.addEventListener("input", function(){
+            linkLabelCount.textContent = this.value.length;
+        });
+    }
+    if (inputText) {
+        inputText.addEventListener("input", function(){
+            msgCount.textContent = this.value.length;
+        });
+    }
+
+    // คลิกปุ่มหรือกรอบเพื่อเลือกไฟล์
+    selectBtn.onclick = () => inputFile.click();
+    dropZone.onclick = (e) => {
+        if (e.target === dropZone || e.target === placeholder) inputFile.click();
+    };
+
+    // Drag & drop
+    dropZone.ondragover = e => { e.preventDefault(); dropZone.classList.add("active"); };
+    dropZone.ondragleave = e => dropZone.classList.remove("active");
+    dropZone.ondrop = function(e){
+        e.preventDefault();
+        dropZone.classList.remove("active");
+        const file = e.dataTransfer.files[0];
+        if(file) uploadImageFile(file);
+    }
+
+    // เลือกไฟล์
+    inputFile.onchange = function() {
+        const file = this.files[0];
+        if(file) uploadImageFile(file);
+    }
+
+    function uploadImageFile(file) {
+        // แสดง preview ทันที (และ set ขนาดจริง)
+        const reader = new FileReader();
+        reader.onload = function(e){
+            previewImg.src = e.target.result;
+            previewImg.style.display = "block";
+            placeholder.style.display = "none";
+            // โหลดรูปจริงเพื่อ set ขนาด preview เป็นขนาดจริง (แต่ scale max 300)
+            const img = new window.Image();
+            img.onload = function() {
+                realImageWidth = img.width;
+                realImageHeight = img.height;
+                // ปรับขนาด preview (scale ไม่เกิน 300px)
+                let scale = Math.min(1, 2040 / Math.max(realImageWidth, realImageHeight));
+                previewImg.style.width = (realImageWidth * scale) + "px";
+                previewImg.style.height = (realImageHeight * scale) + "px";
+                document.getElementById("aspect-ratio").value = `${realImageWidth}:${realImageHeight}`;
+                updateFlexJson();
+            }
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+
+        // อัปโหลดไป imgbb
+        const formData = new FormData();
+        formData.append('image', file);
+        fetch("{{ url_for('upload_imgbb') }}", { method: "POST", body: formData })
+        .then(resp => resp.json())
+        .then(data => {
+            if(data.url){
+                document.getElementById("uploaded-url").value = data.url;
+                // คำนวณ aspect ratio จาก url imgbb (กันกรณี cross origin)
+                const img2 = new window.Image();
+                img2.onload = function(){
+                    realImageWidth = img2.width;
+                    realImageHeight = img2.height;
+                    document.getElementById("aspect-ratio").value = `${realImageWidth}:${realImageHeight}`;
+                    updateFlexJson();
+                }
+                img2.src = data.url;
+            }
+        });
+    }
+
+    // ปรับขนาด preview ตามรูปเสมอ (และ update Flex JSON)
+    function updateFlexJson() {
+        const type = document.getElementById("type-select").value;
+        const url = document.getElementById("uploaded-url").value;
+        const aspectRatio = `${realImageWidth}:${realImageHeight}`;
+        let flex = { type: "bubble" };
+        if(type === "link") {
+            flex.hero = {
+                type: "image",
+                url: url,
+                size: "full",
+                aspectMode: "cover",
+                aspectRatio: aspectRatio,
+                action: {
+                    type: "uri",
+                    label: (linkLabel ? linkLabel.value : "action"),
+                    uri: (inputUrl ? inputUrl.value : "")
+                }
+            };
+        } else if(type === "message") {
+            flex.hero = {
+                type: "image",
+                url: url,
+                size: "full",
+                aspectMode: "cover",
+                aspectRatio: aspectRatio,
+                action: {
+                    type: "message",
+                    label: "action",
+                    text: (inputText ? inputText.value : "")
+                }
+            };
+        }
+        document.getElementById("flex_json").value = JSON.stringify(flex);
+    }
+
+    // updateFlexJson ทุกครั้งที่ user กรอก field
+    document.getElementById("flex-form").addEventListener("input", updateFlexJson);
+
+    // initial
+    if (previewImg) previewImg.style.display = 'none';
+});
+</script>
+{% endblock %}

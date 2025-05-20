@@ -625,7 +625,7 @@ nav.top-navbar {
     padding: 14px 28px;
     color: #fff;
     text-decoration: none;
-    font-size: 0.78em;
+    font-size: 0.68em;
     font-weight: 500;
     border-radius: 10px 0 0 10px;
     transition: background 0.18s, color 0.18s;
@@ -896,4 +896,101 @@ input[name="admin_comment"]:focus {
     background: #ffe4b3;
     color: #b26a03;
     box-shadow: 0 3px 16px #ffd77b;
+}
+
+.upload-area {
+    display: flex;
+    align-items: flex-start;
+    gap: 30px;
+}
+.upload-area {
+    display: flex;
+    align-items: flex-start;
+    gap: 30px;
+}
+.upload-preview {
+    border: 2px solid #53c853;
+    border-radius: 8px;
+    background: #f5f5f5;
+    min-width: 120px;
+    min-height: 120px;
+    max-width: 320px;
+    max-height: 320px;
+    /* **เอา width/height ที่ fix ออก!** */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    color: #aaa;
+    position: relative;
+    transition: border-color 0.2s;
+    overflow: visible; /* ต้องเป็น visible */
+}
+.upload-preview img {
+    display: block;
+    /* ไม่มี width/height fix */
+    max-width: 320px;
+    max-height: 320px;
+    border-radius: 7px;
+    border: 1px solid #ddd;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    background: #fff;
+}
+.upload-preview.active { border-color: #27ae60; }
+.upload-btn {
+    background: #fff;
+    border: 2px solid #27ae60;
+    color: #27ae60;
+    border-radius: 4px;
+    padding: 6px 18px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+    transition: background 0.15s, color 0.15s;
+}
+.upload-btn:hover { background: #27ae60; color: #fff; }
+input[type="file"].d-none { display: none; }
+
+.flex-action-btns {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.btn-edit {
+    background: linear-gradient(90deg,#ffe16e 60%, #ffcc00 100%);
+    color: #624403;
+    font-weight: 600;
+    padding: 7px 22px;
+    border: none;
+    border-radius: 10px;
+    font-size: 1em;
+    text-decoration: none;
+    box-shadow: 0 2px 8px #f1e8bb;
+    margin: 0;
+    transition: background .2s, color .2s;
+}
+.btn-edit:hover {
+    background: linear-gradient(90deg,#fff9ae 0%, #ffe580 100%);
+    color: #9c7900;
+}
+
+.btn-delete {
+    background: linear-gradient(90deg,#fa6161 60%, #c93030 100%);
+    color: #fff;
+    font-weight: 600;
+    padding: 7px 22px;
+    border: none;
+    border-radius: 10px;
+    font-size: 1em;
+    margin: 0;
+    box-shadow: 0 2px 8px #f8bdbd;
+    cursor: pointer;
+    transition: background .2s, color .2s;
+}
+.btn-delete:hover {
+    background: linear-gradient(90deg,#ff9898 0%, #fa6161 100%);
+    color: #fff;
 }

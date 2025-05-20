@@ -15,6 +15,7 @@ import uuid
 import csv
 import io
 import requests
+import json as pyjson
 
 MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://admin:060843Za@telegrambot.f91jjzo.mongodb.net/")
 DB_NAME = os.getenv("DB_NAME", "Lineautomation")
@@ -57,11 +58,15 @@ def get_oa_by_id(username, oa_id):
                 return oa
     return None
 
+# --- Flex Message ---
 def get_user_templates(username):
     user = get_user_from_db(username)
     return user.get("flex_templates", []) if user else []
 
-def add_template(username, name, flex_content):
+def add_template(username, name, flex_content, alt_text, created_at=None):
+    if created_at is None:
+        from datetime import datetime
+        created_at = datetime.now()
     user = mongo_db.users.find_one({"username": username})
     if not user:
         return False
@@ -71,15 +76,36 @@ def add_template(username, name, flex_content):
             return False  # ชื่อซ้ำ
     mongo_db.users.update_one(
         {"username": username},
-        {"$push": {"flex_templates": {"name": name, "json": flex_content}}}
+        {"$push": {"flex_templates": {
+            "name": name,
+            "alt_text": alt_text,
+            "json": flex_content,
+            "created_at": created_at
+        }}}
     )
     return True
+
+def update_template(username, name, new_flex_content):
+    mongo_db.users.update_one(
+        {"username": username, "flex_templates.name": name},
+        {"$set": {
+            "flex_templates.$.json": new_flex_content,
+            "flex_templates.$.modified_at": datetime.now()
+        }}
+    )
 
 def delete_template(username, name):
     mongo_db.users.update_one(
         {"username": username},
         {"$pull": {"flex_templates": {"name": name}}}
     )
+
+def get_template_by_name(username, name):
+    user = mongo_db.users.find_one({"username": username})
+    for t in user.get("flex_templates", []):
+        if t["name"] == name:
+            return t
+    return None
 
 # --- ระบบ USER_WEB ---
 def get_user_from_db(username):
@@ -317,7 +343,7 @@ def set_status_with_disabled_button(chat_id, message_id, status, caption):
         "parse_mode": "Markdown",
         "reply_markup": {"inline_keyboard": new_keyboard}
     })
-    # print('editMessageCaption:', resp.status_code, resp.text)
+    print('editMessageCaption:', resp.status_code, resp.text)
 
 @app.route('/webhook/telegram', methods=['POST'])
 def telegram_webhook():
@@ -713,34 +739,6 @@ def topup():
             flash("กรุณาแนบไฟล์สลิปที่ถูกต้อง")
     return render_template("topup_slip.html")
 
-# @app.route('/topup', methods=['GET', 'POST'])
-# @require_web_login
-# def topup():
-#     if request.method == 'POST':
-#         amount = int(request.form['amount'])
-#         file = request.files['slip']
-#         if file and allowed_file(file.filename):
-#             filename = secure_filename(f"{session['user_login']}_{int(time.time())}_{file.filename}")
-#             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-#             file.save(filepath)
-#             slip = {
-#                 "username": session['user_login'],
-#                 "amount": amount,
-#                 "type": "slip",
-#                 "image": filename,
-#                 "qr_ref": "123456",
-#                 "status": "pending",
-#                 "created_at": datetime.now()
-#             }
-#             result = mongo_db.topup_slips.insert_one(slip)
-#             slip['_id'] = result.inserted_id  # เพิ่ม _id ให้ slip
-#             notify_telegram_admin_topup(slip)  # เรียกฟังก์ชันแจ้งเตือน Telegram
-#             flash("อัปโหลดสลิปสำเร็จ กรุณารอแอดมินตรวจสอบ")
-#             return redirect(url_for("topup_history"))
-#         else:
-#             flash("กรุณาแนบไฟล์สลิปที่ถูกต้อง")
-#     return render_template("topup_slip.html")
-
 @app.route('/topup-history')
 def topup_history():
     if not session.get("user_login"):
@@ -1053,15 +1051,21 @@ def send_flex_msg():
     if selected_template:
         for temp in templates:
             if temp["name"] == selected_template:
-                import json as pyjson
                 flex_json = pyjson.dumps(temp["json"], ensure_ascii=False, indent=2)
 
     if request.method == "POST":
         message_id = "msg_" + datetime.now().strftime("%Y%m%d_%H%M%S") + "_" + uuid.uuid4().hex[:6]
 
-        alt_text = request.form.get("alt_text", "This is a Flex Message")
+        selected_template = request.form.get("selected_template", "")
         flex_json = request.form.get("flex_json")
-        import json as pyjson
+
+        # หาค่า alt_text จาก template ที่เลือก
+        alt_text = selected_template  # กรณีใช้ชื่อ template เป็น alt_text
+        # หรือจะดึง alt_text จากใน db จริง ๆ ก็ได้
+        selected = next((t for t in templates if t["name"] == selected_template), None)
+        
+        if selected and "alt_text" in selected:
+            alt_text = selected["alt_text"]
         try:
             flex_content = pyjson.loads(flex_json)
         except Exception as e:
@@ -1139,32 +1143,129 @@ def send_flex_msg():
         auto_message_id=auto_message_id
     )
 
-@app.route("/save_flex_template", methods=["POST"])
-@require_web_login
-@require_oa
-def save_flex_template():
-    name = request.form.get("template_name")
-    flex_json = request.form.get("flex_json")
-    import json as pyjson
-    try:
-        flex_content = pyjson.loads(flex_json)
-    except Exception as e:
-        flash(f"ไม่สามารถบันทึก Flex JSON นี้ได้: {e}")
-        return redirect(url_for("send_flex_msg"))
-    success = add_template(session["user_login"], name, flex_content)
-    if not success:
-        flash("มีชื่อ Template นี้แล้ว")
+# --- สร้าง FLEX MESSAGE ---
+@app.route('/upload_imgbb', methods=['POST'])
+def upload_imgbb():
+    if 'image' not in request.files:
+        return jsonify({"error": "No image uploaded"}), 400
+
+    file = request.files['image']
+    api_key = "38fff7fc24bb2d14a0729f5f50e6f17f"
+    url = "https://api.imgbb.com/1/upload"
+    payload = {"key": api_key}
+    files = {"image": (file.filename, file.stream, file.mimetype)}
+    response = requests.post(url, data=payload, files=files)
+    if response.status_code == 200:
+        data = response.json()
+        return jsonify({"url": data["data"]["url"]})
     else:
-        flash("บันทึก Template เรียบร้อยแล้ว!")
-    return redirect(url_for("send_flex_msg"))
+        return jsonify({"error": "Failed to upload image"}), 500
+
+@app.route("/flex_templates/list", methods=["GET"])
+@require_web_login
+def flex_templates_list():
+    username = session["user_login"]
+    templates = get_user_templates(username)
+    return render_template("flex_templates_list.html", templates=templates)
+
+@app.route("/flex_templates/create", methods=["GET", "POST"])
+@require_web_login
+def flex_templates_create():
+    username = session["user_login"]
+    if request.method == "POST":
+        name = request.form.get("template_name")
+        flex_json = request.form.get("flex_json")
+        alt_text = request.form.get("alt_text") or name  # ถ้า alt_text ว่างให้ใช้ชื่อ template
+
+        import json as pyjson
+        try:
+            flex_content = pyjson.loads(flex_json)
+            # เพิ่ม created_at และ alt_text ใน template ใหม่
+            success = add_template(username, name, flex_content, alt_text=alt_text, created_at=datetime.now())
+            if success:
+                flash("บันทึก Template เรียบร้อยแล้ว!")
+                return redirect(url_for("flex_templates_list"))
+            else:
+                flash("มีชื่อ Template นี้แล้ว")
+        except Exception as e:
+            flash(f"ไม่สามารถบันทึก Flex JSON นี้ได้: {e}")
+    # ฟอร์มสร้างใหม่ ไม่ต้องส่ง template (ค่า default)
+    return render_template("flex_templates_create.html", template=None)
+
+@app.route("/flex_templates/edit/<template_name>", methods=["GET", "POST"])
+@require_web_login
+def flex_templates_edit(template_name):
+    username = session["user_login"]
+    template = get_template_by_name(username, template_name)
+    if not template:
+        flash("ไม่พบ Template ที่ต้องการแก้ไข")
+        return redirect(url_for("flex_templates_list"))
+    if request.method == "POST":
+        flex_json = request.form.get("flex_json")
+        import json as pyjson
+        try:
+            flex_content = pyjson.loads(flex_json)
+            update_template(username, template_name, flex_content)
+            flash("อัปเดต Template เรียบร้อยแล้ว!")
+            return redirect(url_for("flex_templates_list"))
+        except Exception as e:
+            flash(f"ไม่สามารถบันทึก Flex JSON นี้ได้: {e}")
+    return render_template("flex_templates_edit.html", template=template)
 
 @app.route("/delete_flex_template/<template_name>", methods=["POST"])
 @require_web_login
-@require_oa
 def delete_flex_template(template_name):
-    delete_template(session["user_login"], template_name)
-    flash("ลบ Template เรียบร้อยแล้ว")
-    return redirect(url_for("send_flex_msg"))
+    username = session["user_login"]
+    user = mongo_db.users.find_one({"username": username})
+    if not user:
+        flash("ไม่พบผู้ใช้นี้")
+        return redirect(url_for("flex_templates_list"))
+    templates = user.get("flex_templates", [])
+    new_templates = [t for t in templates if t["name"] != template_name]
+    mongo_db.users.update_one(
+        {"username": username},
+        {"$set": {"flex_templates": new_templates}}
+    )
+    flash(f"ลบ Template '{template_name}' เรียบร้อยแล้ว")
+    return redirect(url_for("flex_templates_list"))  # แก้ตรงนี้!
+
+# @app.route('/upload_imgbb', methods=['POST'])
+# @require_web_login
+# def upload_imgbb():
+#     file = request.files['image']
+#     url = upload_to_imgbb(file)
+#     if url:
+#         return jsonify({"url": url})
+#     else:
+#         return jsonify({"error": "Upload failed"}), 400
+    
+# @app.route("/flex_templates", methods=["GET", "POST"])
+# @require_web_login
+# def flex_templates():
+#     username = session["user_login"]
+#     if request.method == "POST":
+#         name = request.form.get("template_name")
+#         flex_json = request.form.get("flex_json")
+#         import json as pyjson
+#         try:
+#             flex_content = pyjson.loads(flex_json)
+#             success = add_template(username, name, flex_content)
+#             if success:
+#                 flash("บันทึก Template เรียบร้อยแล้ว!")
+#             else:
+#                 flash("มีชื่อ Template นี้แล้ว")
+#         except Exception as e:
+#             flash(f"ไม่สามารถบันทึก Flex JSON นี้ได้: {e}")
+#         return redirect(url_for("flex_templates"))
+#     templates = get_user_templates(username)
+#     return render_template("flex_templates.html", templates=templates)
+
+# @app.route("/delete_flex_template/<template_name>", methods=["POST"])
+# @require_web_login
+# def delete_flex_template(template_name):
+#     delete_template(session["user_login"], template_name)
+#     flash("ลบ Template เรียบร้อยแล้ว")
+#     return redirect(url_for("flex_templates"))  # ชี้กลับหน้าใหม่
 
 # --- Progress & Cancel ตอนส่งข้อความ ---
 @app.route("/send_progress")

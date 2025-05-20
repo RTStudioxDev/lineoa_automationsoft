@@ -2,12 +2,19 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>LINEOA AutomationSoft</title>
+    <title>Line Automationsoft @RTStudioXCode</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon-16x16.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="48x48" href="{{ url_for('static', filename='favicon-48x48.png') }}">
+    <link rel="icon" type="image/png" sizes="64x64" href="{{ url_for('static', filename='favicon-64x64.png') }}">
+    <link rel="icon" type="image/png" sizes="128x128" href="{{ url_for('static', filename='favicon-128x128.png') }}">
+    <link rel="icon" type="image/png" sizes="256x256" href="{{ url_for('static', filename='favicon-256x256.png') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
 </head>
 <body>
 <nav class="top-navbar">
-    LineOA Automation
+    LineOA Automation. Copyright © RTStudioXCode
     {% if days_left is not none %}
         | <span class="days-left">วันที่ใช้งานของคุณจะหมดใน <b>{{ days_left }}</b> วัน</span>
     {% endif %}
@@ -69,8 +76,9 @@
             </div>
             <nav class="sidebar-menu">
                 <a href="{{ url_for('dashboard') }}" {% if request.endpoint == 'dashboard' %}class="active"{% endif %}>🏠 Dashboard</a>
-                <a href="{{ url_for('send_msg') }}" {% if request.endpoint == 'send_msg' %}class="active"{% endif %}>✉️ ส่งข้อความ</a>
-                <a href="{{ url_for('send_flex_msg') }}" {% if request.endpoint == 'send_flex_msg' %}class="active"{% endif %}>🖼️ ส่ง Rich Message</a>
+                <a href="{{ url_for('send_msg') }}" {% if request.endpoint == 'send_msg' %}class="active"{% endif %}>✉️ ส่งข้อความธรรมดา</a>
+                <a href="{{ url_for('send_flex_msg') }}" {% if request.endpoint == 'send_flex_msg' %}class="active"{% endif %}>🖼️ ส่งข้อความริชเมสเสจ</a>
+                <a href="{{ url_for('flex_templates_list') }}" {% if request.endpoint == 'flex_templates_list' %}class="active"{% endif %}>📥 รายการริชเมสเสจ</a>
                 <a href="{{ url_for('topup') }}" {% if request.endpoint == 'topup' %}class="active"{% endif %}>💸 เติมเงิน</a>
                 <a href="{{ url_for('topup_history') }}" {% if request.endpoint == 'topup_history' %}class="active"{% endif %}>
                     💳 ประวัติการเติมเงิน
