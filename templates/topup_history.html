@@ -31,13 +31,13 @@
                     </td>
                     <td>
                         {% if slip.type == "slip" %}
-                          <a href="{{ url_for('uploaded_file', filename=slip.image) }}" target="_blank">
-                              <img src="{{ url_for('uploaded_file', filename=slip.image) }}" width="44" style="border-radius:6px;box-shadow:0 1px 6px #0001;">
-                          </a>
+                        <a href="{{ slip.image }}" target="_blank">
+                            <img src="{{ slip.image }}" width="44" style="border-radius:6px;box-shadow:0 1px 6px #0001;">
+                        </a>
                         {% elif slip.type == "qr" and slip.qr_ref %}
-                          <span style="color:#777;font-size:0.97em;">Ref: {{ slip.qr_ref }}</span>
+                        <span style="color:#777;font-size:0.97em;">Ref: {{ slip.qr_ref }}</span>
                         {% else %}
-                          <span>-</span>
+                        <span>-</span>
                         {% endif %}
                     </td>
                     <td>

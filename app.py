@@ -933,7 +933,6 @@ def send_msg():
     oa = session["current_oa"]
     api = LineAPI(oa["access_token"])
     user_ids = get_followers(oa["id"])
-    image_url = None
     uploaded_image_url = None
 
     if request.method == "POST":
@@ -944,7 +943,15 @@ def send_msg():
             return redirect(url_for("send_msg"))
 
         text = request.form.get("text", "")
-        image_url = request.form.get("image_url", None)
+        image_url = request.form.get("image_url", "").strip()
+        file = request.files.get('image_file')
+
+        # เพิ่ม: ถ้าเลือกไฟล์ ให้อัปโหลดขึ้น imgbb
+        if file and file.filename:
+            image_url = upload_to_imgbb(file)
+            uploaded_image_url = image_url
+        # กรณีไม่มีไฟล์เลย จะใช้ image_url ที่ user กรอก
+
         if not text and not image_url:
             flash("ต้องกรอกข้อความหรือเลือกรูปอย่างน้อย 1 อย่าง")
             return redirect(url_for("send_msg"))
