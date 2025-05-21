@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="dashboard-row">
-    <!-- ฟังก์ชัน -->
+    <!-- เมนูฟังก์ชัน -->
     <div class="dashboard-card section-func">
         <div class="section-title">Dashboard เมนู</div>
         <div class="dashboard-actions">
@@ -37,35 +37,29 @@
             <div><b>Channel Secret:</b></div>
             <div style="font-size:0.95em;word-break:break-all;">{{ oa.secret }}</div>
         </div>
-        <div style="display:flex; flex-direction:column; align-items:center; width:100%;">
-            <!-- กล่องรวมอัปโหลด -->
-            <form action="{{ url_for('import_users') }}" method="post" enctype="multipart/form-data" 
-                style="display:flex; gap:8px; margin-bottom:10px; width:100%; justify-content:center;">
-                <input type="file" name="file" accept=".csv,.xlsx,.xls" required 
-                    style="flex:2 1 120px;min-width:120px;padding:7px 10px;border-radius:8px; margin-bottom:0px;">
-                <input type="hidden" name="oa_id" value="{{ oa.id }}">
-                <button type="submit" class="btn"
-                    style="flex:0 0 20px; min-width:307px; max-width:350px; font-size:1em; padding:7px 0; margin-bottom:5px;">
-                    อัปโหลดรายชื่อ
-                </button>
-                <!-- ปุ่มส่งออก -->
-                <a href="{{ url_for('export_oa_userids', oa_id=oa.id) }}" class="btn"
-                style="width:92%; max-width:270px; margin-bottom:5px;">ส่งออก user_id เป็น CSV</a>
-                <!-- ปุ่มตัวอย่าง csv -->
-                <a href="{{ url_for('static', filename='example_userid.csv') }}" 
-                class="btn" target="_blank"
-                style="background:#fff7e6;color:#c77c06;border:1.2px solid #ffc25e;width:92%;max-width:270px; margin-bottom:5px;">
-                    ดาวน์โหลดตัวอย่าง CSV
-                </a>
-                <small style="margin-top:6px; color:#888; display:block; text-align:center;">
-                    รองรับ .csv, .xlsx, .xls
-                </small>
-            </form>
+        <form action="{{ url_for('import_users') }}" method="post" enctype="multipart/form-data" class="upload-area" style="margin:12px 0;">
+            <input type="file" name="file" accept=".csv,.xlsx,.xls" required>
+            <input type="hidden" name="oa_id" value="{{ oa.id }}">
+            <button type="submit" class="btn">
+                อัปโหลดรายชื่อ
+            </button>
+        </form>
+        <div class="flex-action-btns">
+            <!-- ปุ่มส่งออก CSV -->
+            <a href="{{ url_for('export_oa_userids', oa_id=oa.id) }}" class="btn">
+                ส่งออก user_id เป็น CSV
+            </a>
+            <!-- ตัวอย่าง csv -->
+            <a href="{{ url_for('static', filename='example_userid.csv') }}" class="btn btn-upload-link" target="_blank">
+                ดาวน์โหลดตัวอย่าง CSV
+            </a>
         </div>
-        <form action="{{ url_for('clear_users') }}" method="post" style="display:inline;">
+        <small style="margin-top:8px; color:#888; display:block; text-align:center;">
+            รองรับ .csv, .xlsx, .xls
+        </small>
+        <form action="{{ url_for('clear_users') }}" method="post" style="margin-top:14px;">
             <input type="hidden" name="oa_id" value="{{ oa.id }}">
             <button type="submit" class="btn btn-danger"
-                style="flex:0 0 20px; min-width:1500px; max-width:3500px; font-size:1em; padding:7px 0; margin-bottom:5px;"
                 onclick="return confirm('ลบรายชื่อทั้งหมดของ OA นี้?');">
                 🗑️ ลบรายชื่อทั้งหมด
             </button>
@@ -80,7 +74,7 @@
                 </ul>
             </div>
         {% endif %}
-        <div class="dashboard-card section-friends">
+        <div class="dashboard-card section-friends" style="margin-top:18px;">
             <div class="section-title">👥 จำนวนคนที่ส่งข้อความได้</div>
             <div class="oa-stats-value">{{ total_friends }}</div>
             <div class="oa-stats-unit">คน</div>
