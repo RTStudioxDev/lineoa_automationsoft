@@ -1,32 +1,144 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Admin Panel - จัดการยูสเซอร์</h2>
-<a href="{{ url_for('admin_add_user') }}" class="btn btn-success">+ สร้างยูสเซอร์ใหม่</a>
-<a href="{{ url_for('admin_topup_slips') }}" class="btn-admin-slip">💰 อนุมัติสลิปเติมเงิน</a>
-<table>
-    <tr>
-        <th>ชื่อผู้ใช้</th>
-        <th>ระดับ</th>
-        <th>วันหมดอายุ</th>
-        <th>เครดิตคงเหลือ</th>
-        <th>IP ที่ใช้งานล่าสุด</th>
-        <th>แก้ไข</th>
-    </tr>
-    {% for user in users %}
-    <tr>
-        <td>{{ user.username }}</td>
-        <td>{{ user.role }}</td>
-        <td>{{ user.expire_date }}</td>
-        <td>{{ user.credit if user and user.credit is not none else 0 }}</td>
-        <td>{{ user.last_ip or '-' }}</td>
-        <td>
-            <a href="{{ url_for('admin_edit_user', username=user.username) }}" class="btn-edit">แก้ไข</a>
-            <form action="{{ url_for('admin_delete_user', username=user.username) }}" method="post" style="display:inline;">
-                <button type="submit" class="btn-delete" onclick="return confirm('ลบยูสเซอร์นี้?')">ลบ</button>
-            </form>
-        </td>
-    </tr>
-    {% endfor %}
-    
-</table>
+<style>
+.admin-panel-container {
+    background: #f6fff6;
+    border-radius: 20px;
+    box-shadow: 0 4px 24px rgba(46,125,50,0.07), 0 0 0 1px #e7fbe6;
+    padding: 24px 24px 4px 24px;
+    max-width: 5000px;
+    margin: 32px 0 0 -280px !important;
+}
+.admin-panel-title {
+    font-weight: 700;
+    color: #19693c;
+    margin-bottom: 24px;
+    text-align: center;
+    font-size: 2em;
+    letter-spacing: 0.5px;
+}
+.admin-btns {
+    display: flex;
+    gap: 18px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+.btn-admin-slip {
+    background: #ffe1b8;
+    color: #b87b0d;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 22px;
+    font-size: 1.03em;
+    font-weight: 600;
+    box-shadow: 0 2px 8px #ffe6bb;
+    text-decoration: none;
+    margin-left: 8px;
+    transition: background 0.16s, color 0.16s;
+}
+.btn-admin-slip:hover, .btn-admin-slip:focus {
+    background: #ffd090;
+    color: #bb7603;
+}
+.admin-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: #fff;
+    border-radius: 16px;
+    overflow: hidden;
+    font-size: 1rem;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+}
+.admin-table th, .admin-table td {
+    padding: 16px 10px;
+    text-align: center;
+    vertical-align: middle;
+}
+.admin-table th {
+    background: #e7fbe6;
+    color: #007a4d;
+    font-weight: 600;
+    border-bottom: 2px solid #cce6d3;
+    font-size: 1.06em;
+    letter-spacing: 0.5px;
+}
+.admin-table tbody tr:hover {
+    background: #f2ffed;
+}
+.admin-table td {
+    border-bottom: 1px solid #f3f3f3;
+}
+.btn-edit, .btn-delete {
+    padding: 7px 20px;
+    border-radius: 7px;
+    font-weight: 600;
+    font-size: 1em;
+    margin: 0 4px 0 0;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 1px 5px #e7fbe6;
+    transition: background 0.13s;
+}
+.btn-edit {
+    background: #e3ffe5;
+    color: #09a34a;
+    border: 1.3px solid #b1ebbc;
+}
+.btn-edit:hover { background: #bdf8c7; color: #0e7230; }
+.btn-delete {
+    background: #fff6f6;
+    color: #e44f43;
+    border: 1.5px solid #ffdede;
+}
+.btn-delete:hover { background: #fae1e2; color: #b3271e; }
+@media (max-width: 900px) {
+    .admin-panel-container { padding: 4vw 2vw 3vw 2vw; }
+    .admin-table th, .admin-table td { font-size: 0.93em; padding: 11px 4px;}
+    .admin-panel-title { font-size: 1.23em;}
+}
+@media (max-width: 600px) {
+    .admin-panel-container { padding: 2vw 1vw 2vw 1vw; }
+    .admin-table { font-size: 0.92em; }
+    .admin-panel-title { font-size: 1.1em;}
+    .btn-edit, .btn-delete { padding: 6px 10px; font-size: 0.97em;}
+    .admin-btns { flex-direction: column; gap: 10px;}
+}
+</style>
+<div class="admin-panel-container">
+    <div class="admin-panel-title">Admin Panel - จัดการยูสเซอร์</div>
+    <div class="admin-btns">
+        <a href="{{ url_for('admin_add_user') }}" class="btn btn-success">+ สร้างยูสเซอร์ใหม่</a>
+        <a href="{{ url_for('admin_topup_slips') }}" class="btn-admin-slip">💰 อนุมัติสลิปเติมเงิน</a>
+    </div>
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>ชื่อผู้ใช้</th>
+                <th>ระดับ</th>
+                <th>วันหมดอายุ</th>
+                <th>เครดิตคงเหลือ</th>
+                <th>IP ที่ใช้งานล่าสุด</th>
+                <th>แก้ไข</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for user in users %}
+        <tr>
+            <td>{{ user.username }}</td>
+            <td>{{ user.role }}</td>
+            <td>{{ user.expire_date }}</td>
+            <td>{{ user.credit if user and user.credit is not none else 0 }}</td>
+            <td>{{ user.last_ip or '-' }}</td>
+            <td>
+                <a href="{{ url_for('admin_edit_user', username=user.username) }}" class="btn-edit">แก้ไข</a>
+                <form action="{{ url_for('admin_delete_user', username=user.username) }}" method="post" style="display:inline;">
+                    <button type="submit" class="btn-delete" onclick="return confirm('ลบยูสเซอร์นี้?')">ลบ</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% endblock %}

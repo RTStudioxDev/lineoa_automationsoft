@@ -1,26 +1,128 @@
 {% extends "base.html" %}
 {% block content %}
+<style>
+.user-edit-container {
+    background: #f6fff6;
+    border-radius: 20px;
+    box-shadow: 0 4px 24px rgba(46,125,50,0.07), 0 0 0 1px #e7fbe6;
+    padding: 24px 24px 4px 24px;
+    max-width: 2000px;
+    margin: 32px 0 0 -280px !important;
+    font-size: 1.04em;
+}
+.user-edit-container h2 {
+    font-weight: 700;
+    color: #19693c;
+    margin-bottom: 26px;
+    text-align: center;
+    font-size: 1.28em;
+    letter-spacing: .5px;
+}
+.user-edit-form label {
+    font-weight: 500;
+    color: #145f30;
+    margin-bottom: 8px;
+    display: block;
+    font-size: 1.07em;
+}
+.user-edit-form input,
+.user-edit-form select {
+    width: 100%;
+    padding: 11px 13px;
+    border-radius: 8px;
+    border: 1.5px solid #d7efde;
+    background: #fff;
+    font-size: 1em;
+    margin-bottom: 20px;
+    box-sizing: border-box;
+    transition: border 0.18s;
+}
+.user-edit-form input:focus, .user-edit-form select:focus {
+    border: 1.5px solid #22bb66;
+    outline: none;
+}
+.user-edit-btn,
+.btn-outline {
+    width: 100%;
+    background: #c9faba;
+    color: #008f36;
+    border: 2px solid #008f36;
+    border-radius: 9px;
+    padding: 12px 32px;
+    font-size: 1em;
+    font-weight: 600;
+    text-decoration: none !important;
+    margin-bottom: 16px;
+    margin-left: 10px;
+    box-shadow: 0 2px 8px #e7fbe8;
+    transition: background 0.16s, color 0.16s, box-shadow 0.16s;
+}
+.user-edit-btn:hover, .btn-outline:hover,
+.user-edit-btn:focus, .btn-outline:focus {
+    background: #e8fff2;
+    color: #045d28;
+    box-shadow: 0 3px 12px #b8eedb6e;
+    text-decoration: none;
+}
+.btn-edit {
+    background: #008f36;
+    color: #fff;
+    border: none;
+    border-radius: 9px;
+    padding: 12px 32px;
+    font-size: 1em;
+    font-weight: 600;
+    margin-left: 10px;
+    box-shadow: 0 2px 8px #e7fbe8;
+    transition: background 0.18s;
+}
+.btn-edit:hover, .btn-edit:focus {
+    background: #16a34a;
+}
+.user-edit-form {
+    margin-bottom: 18px;
+}
+.user-credit-form input[type="number"] {
+    width: 140px;
+    display: inline-block;
+    margin-right: 8px;
+}
+@media (max-width: 600px) {
+    .user-edit-container {
+        max-width: 99vw;
+        padding: 8vw 3vw 7vw 3vw;
+        border-radius: 13px;
+        font-size: 0.98em;
+    }
+    .user-edit-container h2 { font-size: 1.07em; }
+    .btn-edit, .btn-outline, .user-edit-btn { font-size: 1em; padding: 11px 0; }
+}
+</style>
+<div class="user-edit-container">
     <h2>แก้ไขผู้ใช้: {{ user.username }}</h2>
-    <form method="post">
+    <form method="post" class="user-edit-form">
         <label>Username:</label>
-        <input type="text" name="username" value="{{ user.username }}" readonly><br>
+        <input type="text" name="username" value="{{ user.username }}" readonly>
+        
         <label>เปลี่ยนรหัสผ่านใหม่:</label>
         <input type="password" name="password" placeholder="(ไม่กรอก = ไม่เปลี่ยน)">
-        <br>
+        
         <label>ยศ (role):</label>
         <select name="role">
             <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
             <option value="user" {% if user.role == 'user' %}selected{% endif %}>User</option>
         </select>
-        <br>
+        
         <label>วันหมดอายุ (จำนวนวัน):</label>
         <input type="number" name="expire_days" min="1" value="30" required>
-        <br>
-        <button type="submit" class="btn btn-outline">บันทึกการเปลี่ยนแปลง</button>
-        <a href="{{ url_for('admin_panel') }}" class="btn btn-outline">ย้อนกลับ</a>
+        
+        <form method="post" class="user-credit-form" action="{{ url_for('admin_add_credit', username=user.username) }}">
+            <input type="number" name="amount" placeholder="จำนวนเครดิต" min="1" required>
+            <button type="submit" class="btn-edit">เติมเครดิต</button>
+        </form>
+
+        <button type="submit" class="btn-edit">บันทึกการเปลี่ยนแปลง</button>
+        <a href="{{ url_for('admin_panel') }}" class="btn-outline" style="margin: 16px 0 0 14px;">ย้อนกลับ</a>
     </form>
-    <form method="post" action="{{ url_for('admin_add_credit', username=user.username) }}">
-        <input type="number" name="amount" placeholder="จำนวนเครดิต" required>
-        <button type="submit" class="btn btn-edit">เติมเครดิต</button>
-    </form>
+</div>
 {% endblock %}

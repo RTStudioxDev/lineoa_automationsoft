@@ -13,10 +13,10 @@
     <link rel="icon" type="image/png" sizes="128x128" href="{{ url_for('static', filename='favicon-128x128.png') }}">
     <link rel="icon" type="image/png" sizes="256x256" href="{{ url_for('static', filename='favicon-256x256.png') }}">
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
-    <script src="{{ url_for('static', filename='js/protect.js') }}"></script>
+    <!-- <script src="{{ url_for('static', filename='js/protect.js') }}"></script> -->
 </head>
+
 <body>
-<!-- Hamburger Sidebar Toggle & Overlay (นอก layout) -->
 <button class="sidebar-toggle" aria-label="เมนู" type="button">&#9776;</button>
 <div class="sidebar-overlay"></div>
 
@@ -50,17 +50,17 @@
                         {{ user.expire_date if user and user.expire_date else '-' }}
                     </b>
                 </div>
-                <a href="{{ url_for('renew') }}"
-                  class="renew-link-btn{% if request.endpoint == 'renew' %} active{% endif %}">
-                    <span style="font-size:1.1em;vertical-align:middle;margin-right:5px;">🔄</span>
-                    ต่ออายุการใช้งาน
-                </a>
-                {% if get_user_role(session['user_login']) == 'admin' %}
-                  <a href="{{ url_for('admin_panel') }}" class="admin-panel-btn">
-                    <span style="font-size:1.15em;vertical-align:middle;margin-right:5px;">🛡️</span>
-                    Admin Panel
+                <!-- ปุ่มต่ออายุ -->
+                <div class="rt-btn-center">
+                  <a href="{{ url_for('renew') }}" class="rt-renew-link-btn{% if request.endpoint == 'renew' %} active{% endif %}">
+                      <span class="icon">🔄</span> ต่ออายุการใช้งาน
                   </a>
-                {% endif %}
+                  {% if get_user_role(session['user_login']) == 'admin' %}
+                    <a href="{{ url_for('admin_panel') }}" class="rt-admin-panel-btn">
+                      <span class="icon">🛡️</span> Admin Panel
+                    </a>
+                  {% endif %}
+                </div>
                 <div class="profile-item">
                     <a href="{{ url_for('change_password') }}" class="profile-link">เปลี่ยนรหัสผ่าน</a>
                 </div>
@@ -86,6 +86,7 @@
                 <a href="{{ url_for('send_msg') }}" {% if request.endpoint == 'send_msg' %}class="active"{% endif %}>✉️ ส่งข้อความธรรมดา</a>
                 <a href="{{ url_for('send_flex_msg') }}" {% if request.endpoint == 'send_flex_msg' %}class="active"{% endif %}>🖼️ ส่งข้อความริชเมสเสจ</a>
                 <a href="{{ url_for('flex_templates_list') }}" {% if request.endpoint == 'flex_templates_list' %}class="active"{% endif %}>📥 รายการริชเมสเสจ</a>
+                <a href="{{ url_for('message_history') }}" {% if request.endpoint == 'message_history' %}class="active"{% endif %}>📦 ประวัติการส่งข้อความ</a>
                 <a href="{{ url_for('topup') }}" {% if request.endpoint == 'topup' %}class="active"{% endif %}>💸 เติมเงิน</a>
                 <a href="{{ url_for('topup_history') }}" {% if request.endpoint == 'topup_history' %}class="active"{% endif %}>
                     💳 ประวัติการเติมเงิน

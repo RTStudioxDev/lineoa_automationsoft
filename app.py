@@ -10,6 +10,7 @@ from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
 import ipaddress
 from bson.objectid import ObjectId
+import threading
 import time
 import uuid
 import csv
@@ -273,17 +274,31 @@ def clear_user_ids_of_oa(oa_id):
 
 # --- ระบบเก็บกัน Spam ---
         # LOG #
-def log_message_send(message_id, user_id, oa_id, status, msg_type, detail):
+def log_message_send(
+    message_id,
+    user_id,
+    oa_id,
+    status,
+    msg_type,
+    detail,
+    error_msg=None,
+    sent_at=None,
+    scheduled_time=None
+):
     log = {
         "message_id": message_id,
         "user_id": user_id,
         "oa_id": oa_id,
-        "sent_at": datetime.now(),
-        "status": status,
+        "sent_at": sent_at or datetime.now(),
+        "status": status,       # pending / success / fail / error
         "type": msg_type,       # เช่น "text", "flex", "image"
-        "detail": detail        # dict เก็บเนื้อหาเช่น {"text": "hi"}, {"alText": "..."}, {"image_url": "..."}
+        "detail": detail
     }
-    # เพิ่ม log ใน oa_list ที่ตรงกับ oa_id
+    if error_msg:
+        log["error_msg"] = error_msg
+    if scheduled_time:
+        log["detail"]["scheduled_time"] = scheduled_time
+
     mongo_db.users.update_one(
         {"oa_list.id": oa_id},
         {"$push": {"oa_list.$.send_logs": log}}
@@ -305,6 +320,72 @@ def already_sent_recently(user_id, oa_id, msg_type, detail, hours=6):
             ):
                 return True
     return False
+
+# --- ระบบตั้งเวลาส่ง ---
+def scheduled_message_worker():
+    while True:
+        now = datetime.now()
+        # 1. วนหา users ทุกคน (หรือเฉพาะที่ต้องการ)
+        users = list(mongo_db.users.find({}))
+        for user in users:
+            for oa in user.get("oa_list", []):
+                oa_id = oa["id"]
+                oa_token = oa.get("access_token")
+                send_logs = oa.get("send_logs", [])
+                for log in send_logs:
+                    # 2. เฉพาะ log ที่ pending และมีกำหนด scheduled_time ถึงเวลาแล้ว
+                    status = log.get("status", "")
+                    detail = log.get("detail", {})
+                    scheduled_time = detail.get("scheduled_time")
+                    if status == "pending" and scheduled_time:
+                        # scheduled_time เป็น datetime ไหม ถ้าไม่ใช่แปลงก่อน
+                        if isinstance(scheduled_time, str):
+                            try:
+                                scheduled_time = datetime.fromisoformat(scheduled_time)
+                            except Exception:
+                                continue
+                        if scheduled_time <= now:
+                            # ---- เริ่มส่งจริง ----
+                            error_msg = None
+                            send_status = "success"
+                            try:
+                                api = LineAPI(oa_token)
+                                if log.get("type") == "flex":
+                                    if log.get("user_id") == "broadcast":
+                                        api.broadcast_flex(detail.get("json"), detail.get("altText", "Flex Message"))
+                                    else:
+                                        api.send_flex(log.get("user_id"), detail.get("json"), detail.get("altText", "Flex Message"))
+                                else:
+                                    if log.get("user_id") == "broadcast":
+                                        api.send_broadcast(detail.get("text"), detail.get("image_url"))
+                                    else:
+                                        api.send_message(log.get("user_id"), detail.get("text"), detail.get("image_url"))
+                            except Exception as e:
+                                send_status = "fail"
+                                error_msg = str(e)
+                            # ---- อัปเดต log ใน send_logs ----
+                            mongo_db.users.update_one(
+                                {
+                                    "_id": user["_id"],
+                                    "oa_list.id": oa_id,
+                                    "oa_list.send_logs.message_id": log.get("message_id")
+                                },
+                                {
+                                    "$set": {
+                                        "oa_list.$[oa].send_logs.$[lg].status": send_status,
+                                        "oa_list.$[oa].send_logs.$[lg].sent_at": datetime.now(),
+                                        "oa_list.$[oa].send_logs.$[lg].error_msg": error_msg
+                                    }
+                                },
+                                array_filters=[
+                                    {"oa.id": oa_id},
+                                    {"lg.message_id": log.get("message_id")}
+                                ]
+                            )
+        time.sleep(30)
+
+# เรียกใช้งาน worker 1 ตัว (ตอนรัน Flask)
+threading.Thread(target=scheduled_message_worker, daemon=True).start()
 
 # --- ระบบเครดิต---
 def add_credit(username, amount):
@@ -876,7 +957,7 @@ def add_oa():
         }
         add_oa_to_user(session["user_login"], new_oa)
         flash("เพิ่ม OA สำเร็จแล้ว")
-        return redirect(url_for("add_oa"))
+        return redirect(url_for("login"))
     oa_list = get_user_oa_list(session["user_login"])
     return render_template("add_oa.html", oa_list=oa_list)
 
@@ -998,6 +1079,26 @@ def send_msg():
         }
 
         target = request.form.get("target")
+        send_time_option = request.form.get("send_time_option", "now")
+        scheduled_time = request.form.get("scheduled_time")
+
+        if send_time_option == "schedule" and scheduled_time:
+            log_message_send(
+                message_id=message_id,
+                user_id=target,
+                oa_id=oa["id"],
+                status="pending",
+                msg_type=msg_type,
+                detail={
+                    "text": text,
+                    "image_url": image_url,
+                    "scheduled_time": datetime.fromisoformat(scheduled_time)
+                },
+                scheduled_time=datetime.fromisoformat(scheduled_time)
+            )
+            flash("บันทึกคิวข้อความเรียบร้อย จะส่งอัตโนมัติเมื่อถึงเวลาที่กำหนด")
+            return redirect(url_for("send_msg"))
+
         if target == "broadcast":
             BATCH_SIZE = 500
             DELAY_SEC = 3
@@ -1092,9 +1193,9 @@ def send_flex_msg():
         alt_text = selected_template  # กรณีใช้ชื่อ template เป็น alt_text
         # หรือจะดึง alt_text จากใน db จริง ๆ ก็ได้
         selected = next((t for t in templates if t["name"] == selected_template), None)
-        
+
         if selected and "alt_text" in selected:
-            alt_text = selected["alt_text"]
+            alt_text = selected["alt_text"] if selected and "alt_text" in selected else selected_template
         try:
             flex_content = pyjson.loads(flex_json)
         except Exception as e:
@@ -1108,6 +1209,26 @@ def send_flex_msg():
         }
 
         target = request.form.get("target")
+        send_time_option = request.form.get("send_time_option", "now")
+        scheduled_time = request.form.get("scheduled_time")
+
+        if send_time_option == "schedule" and scheduled_time:
+            log_message_send(
+                message_id=message_id,
+                user_id=target,
+                oa_id=oa["id"],
+                status="pending",
+                msg_type=msg_type,
+                detail={
+                    "json": flex_content,
+                    "altText": alt_text,
+                    "scheduled_time": datetime.fromisoformat(scheduled_time)
+                },
+                scheduled_time=datetime.fromisoformat(scheduled_time)
+            )
+            flash("บันทึกคิว Flex เรียบร้อย จะส่งอัตโนมัติเมื่อถึงเวลาที่กำหนด")
+            return redirect(url_for("send_flex_msg"))
+
         if target == "broadcast":
             BATCH_SIZE = 500
             DELAY_SEC = 2
@@ -1171,6 +1292,25 @@ def send_flex_msg():
         today=datetime.now().strftime('%Y-%m-%d'),
         auto_message_id=auto_message_id
     )
+
+# --- หน้าประวัติการส่งข้อความ ---
+@app.route('/message_history')
+@require_web_login
+def message_history():
+    username = session["user_login"]
+    oa_map = {}
+    user = mongo_db.users.find_one({"username": username})
+    all_logs = []
+    if user and "oa_list" in user:
+        for oa in user["oa_list"]:
+            oa_id = oa["id"]
+            oa_map[oa_id] = oa.get("name", oa_id)
+            for log in oa.get("send_logs", []):
+                log["_oa_id"] = oa_id
+                all_logs.append(log)
+    # เรียง log จากใหม่ไปเก่า
+    messages = sorted(all_logs, key=lambda x: x.get("sent_at", datetime.min), reverse=True)
+    return render_template("message_history.html", messages=messages, oa_map=oa_map)
 
 # --- สร้าง FLEX MESSAGE ---
 @app.route('/upload_imgbb', methods=['POST'])

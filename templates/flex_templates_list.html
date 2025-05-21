@@ -1,70 +1,147 @@
 {% extends "base.html" %}
 {% block content %}
-<div style="display:flex;justify-content:space-between;align-items:center;">
-    <h2>รายการริชเมสเสจ</h2>
-    <a href="{{ url_for('flex_templates_create') }}" class="btn btn-success">สร้างริชเมสเสจใหม่</a>
-</div>
-<hr>
-<table class="table table-bordered align-middle" style="background: #fff;">
-    <thead class="table-light">
-        <tr>
-            <th style="width:80px;">รูป</th>
-            <th style="width:180px;">ชื่อ</th>
-            <th style="width:90px;">ประเภท</th>
-            <th>รายละเอียด</th>
-            <th style="width:160px;">วันที่สร้าง</th>
-            <th style="width:160px;">จัดการ</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for t in templates %}
-        <tr>
-            <td>
-                {% if t.json.hero and t.json.hero.url %}
-                    <img src="{{ t.json.hero.url }}" style="max-width:70px;max-height:70px;border-radius:7px;border:1px solid #eee;">
-                {% endif %}
-            </td>
-            <td>{{ t.name }}</td>
-            <td>
-                {% if t.json.hero.action.type == "uri" %}
-                    <span class="badge bg-primary">ลิงก์</span>
-                {% elif t.json.hero.action.type == "message" %}
-                    <span class="badge bg-success">ข้อความ</span>
-                {% else %}
-                    <span class="badge bg-secondary">-</span>
-                {% endif %}
-            </td>
-            <td>
-                {% if t.json.hero.action.type == "uri" %}
-                    <div style="color:#2970fa;font-size:0.98em;word-break:break-all;">
-                        <a href="{{ t.json.hero.action.uri }}" target="_blank">{{ t.json.hero.action.uri }}</a>
+<style>
+.tableflexlist-wrap {
+    background: #f6fff6;
+    border-radius: 18px;
+    box-shadow: 0 4px 24px rgba(46, 125, 50, 0.08), 0 0 0 1px #e7fbe6;
+    padding: 32px 36px 16px 36px;
+    width: 95vw;
+    max-width: 1500px;
+    margin: 32px 0 0 -300px !important;   /* ชิดซ้าย ถ้าเมนู 260-280px ให้ margin-left มากกว่าเมนูนิดหน่อย */
+}
+
+.tableflexlist-modern {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: #fff;
+    border-radius: 16px;
+    overflow: hidden;
+    font-size: 1rem;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+}
+.tableflexlist-modern th, .tableflexlist-modern td {
+    padding: 18px 12px;
+    text-align: center;
+    vertical-align: middle;
+    font-size: 1.02em;
+}
+.tableflexlist-modern th {
+    background: #e7fbe6;
+    color: #007a4d;
+    font-weight: 600;
+    border-bottom: 2px solid #d7efde;
+    letter-spacing: 1px;
+    font-size: 1.08em;
+}
+.tableflexlist-modern tr {
+    transition: background 0.18s;
+}
+.tableflexlist-modern tbody tr:hover {
+    background: #f2ffed;
+}
+.tableflexlist-modern td {
+    border-bottom: 1px solid #f2f2f2;
+}
+img.message-img, .tableflexlist-modern img {
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(34,139,34,0.07);
+    margin: 0 auto 3px auto;
+    max-width: 90px; max-height: 90px; width: auto; height: auto; display: block;
+}
+.flex-action-btns {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+.btn-edit, .btn-delete {
+    border: none;
+    outline: none;
+    border-radius: 7px;
+    padding: 7px 18px;
+    font-weight: 500;
+    font-size: 0.96em;
+    transition: background 0.18s, color 0.18s;
+}
+.btn-edit { background: #e8f6e2; color: #007a4d; }
+.btn-edit:hover { background: #c2f0c6; color: #137a36;}
+.btn-delete { background: #f7e8e7; color: #c23a3a; }
+.btn-delete:hover { background: #f4cccc; color: #e44f43;}
+@media (max-width: 1100px) {
+    .table-wrap {margin-left: 10px; width: 99vw; max-width: 99vw; padding: 8vw 2vw 2vw 2vw;}
+    .table-modern th, .table-modern td { font-size: 0.93em; padding: 10px 4px;}
+}
+</style>
+<div class="tableflexlist-wrap">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+        <h2 style="font-weight: 700; color: #097c22; margin-bottom: 36px; margin-left: auto; margin-right: auto; text-align: center;">
+            รายการริชเมสเสจ
+        </h2>
+        <a href="{{ url_for('flex_templates_create') }}" class="btn btn-success">สร้างริชเมสเสจใหม่</a>
+    </div>
+    <hr>
+    <table class="table table-bordered align-middle" style="background: #fff;">
+        <thead class="tableflexlist-modern">
+            <tr>
+                <th style="width:80px;">รูป</th>
+                <th style="width:180px;">ชื่อ</th>
+                <th style="width:90px;">ประเภท</th>
+                <th>รายละเอียด</th>
+                <th style="width:160px;">วันที่สร้าง</th>
+                <th style="width:160px;">จัดการ</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in templates %}
+            <tr>
+                <td>
+                    {% if t.json.hero and t.json.hero.url %}
+                        <img src="{{ t.json.hero.url }}" style="max-width:70px;max-height:70px;border-radius:7px;border:1px solid #eee;">
+                    {% endif %}
+                </td>
+                <td>{{ t.name }}</td>
+                <td>
+                    {% if t.json.hero.action.type == "uri" %}
+                        <span class="badge bg-primary">ลิงก์</span>
+                    {% elif t.json.hero.action.type == "message" %}
+                        <span class="badge bg-success">ข้อความ</span>
+                    {% else %}
+                        <span class="badge bg-secondary">-</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if t.json.hero.action.type == "uri" %}
+                        <div style="color:#2970fa;font-size:0.98em;word-break:break-all;">
+                            <a href="{{ t.json.hero.action.uri }}" target="_blank">{{ t.json.hero.action.uri }}</a>
+                        </div>
+                    {% elif t.json.hero.action.type == "message" %}
+                        <div style="color:#333;font-size:1em;">{{ t.json.hero.action.text }}</div>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if t.created_at %}
+                        {{ t.created_at.strftime('%d/%m/%Y %H:%M') }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="flex-action-btns">
+                        <a href="{{ url_for('flex_templates_edit', template_name=t.name) }}" class="btn-edit">แก้ไข</a>
+                        <form action="{{ url_for('delete_flex_template', template_name=t.name) }}" method="post" style="display:inline;" onsubmit="return confirm('ต้องการลบเทมเพลตนี้ใช่หรือไม่?');">
+                            <button type="submit" class="btn-delete">ลบ</button>
+                        </form>
                     </div>
-                {% elif t.json.hero.action.type == "message" %}
-                    <div style="color:#333;font-size:1em;">{{ t.json.hero.action.text }}</div>
-                {% endif %}
-            </td>
-            <td>
-                {% if t.created_at %}
-                    {{ t.created_at.strftime('%d/%m/%Y %H:%M') }}
-                {% else %}
-                    -
-                {% endif %}
-            </td>
-            <td>
-                <div class="flex-action-btns">
-                    <a href="{{ url_for('flex_templates_edit', template_name=t.name) }}" class="btn-edit">แก้ไข</a>
-                    <form action="{{ url_for('delete_flex_template', template_name=t.name) }}" method="post" style="display:inline;" onsubmit="return confirm('ต้องการลบเทมเพลตนี้ใช่หรือไม่?');">
-                        <button type="submit" class="btn-delete">ลบ</button>
-                    </form>
-                </div>
-            </td>
-        </tr>
-        {% endfor %}
-        {% if not templates %}
-        <tr>
-            <td colspan="6" class="text-center text-muted py-4">ยังไม่มีริชเมสเสจที่บันทึกไว้</td>
-        </tr>
-        {% endif %}
-    </tbody>
-</table>
+                </td>
+            </tr>
+            {% endfor %}
+            {% if not templates %}
+            <tr>
+                <td colspan="6" class="text-center text-muted py-4">ยังไม่มีริชเมสเสจที่บันทึกไว้</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
 {% endblock %}

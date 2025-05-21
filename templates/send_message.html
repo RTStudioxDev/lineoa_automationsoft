@@ -1,6 +1,198 @@
 {% extends "base.html" %}
 {% block content %}
-    <h2>ส่งข้อความธรรมดา+รูปภาพ</h2>
+<style>
+.send-message-container {
+    background: #f6fff6;
+    border-radius: 18px;
+    box-shadow: 0 4px 24px rgba(46,125,50,0.07), 0 0 0 1px #e7fbe6;
+    padding: 24px 24px 4px 24px;
+    max-width: 1540px;
+    margin: 32px 0 0 -280px !important;
+}
+
+.send-message-container h2 {
+    font-weight: 700;
+    color: #097c22;
+    margin-bottom: 32px;
+    font-size: 2em;
+    text-align: center;
+    letter-spacing: 0.5px;
+}
+
+.send-message-container label {
+    font-weight: 500;
+    color: #17723c;
+    margin-bottom: 7px;
+    display: block;
+    font-size: 1.08em;
+}
+
+.send-message-container textarea,
+.send-message-container select,
+.send-message-container input[type="url"],
+.send-message-container input[type="datetime-local"] {
+    width: 100%;
+    padding: 11px 13px;
+    border-radius: 9px;
+    border: 1.5px solid #d7efde;
+    background: #fff;
+    font-size: 1.05em;
+    margin-bottom: 18px;
+    box-sizing: border-box;
+    transition: border 0.17s;
+}
+.send-message-container textarea:focus,
+.send-message-container select:focus,
+.send-message-container input[type="url"]:focus,
+.send-message-container input[type="datetime-local"]:focus {
+    border: 1.5px solid #22bb66;
+    outline: none;
+}
+
+.upload-btn-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.upload-btn {
+    background: #e7fbe6;
+    color: #008f36;
+    border: none;
+    border-radius: 8px;
+    padding: 7px 17px;
+    font-weight: 600;
+    font-size: 1em;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    box-shadow: 0 2px 7px #e7fbe6;
+}
+.upload-btn:hover { background: #c2f0c6; color: #0dbe5a; }
+.upload-file-label { color: #666; font-size: 0.98em; margin-left: 6px;}
+.btn-upload-link {
+    background: #fff;
+    color: #00b26f;
+    border: 1px solid #b6efce;
+    border-radius: 8px;
+    padding: 7px 15px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: background 0.15s, color 0.15s;
+}
+.btn-upload-link:hover { background: #e7fbe6; color: #0dbe5a; }
+
+#image_preview img, .send-message-container img {
+    border-radius: 10px;
+    box-shadow: 0 2px 12px #bbb;
+    margin: 0 auto;
+    display: block;
+    max-width: 300px;
+    max-height: 180px;
+}
+.send-message-container .btn {
+    background: #008f36;
+    color: #fff;
+    border: none;
+    border-radius: 9px;
+    padding: 10px 24px;
+    font-size: 1.1em;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 8px #e8fce2;
+    transition: background 0.18s, color 0.18s;
+    margin-top: 10px;
+}
+.send-message-container .btn:hover,
+.send-message-container .btn:focus {
+    background: #0dbe5a;
+    color: #fff;
+}
+
+input[type="radio"] {
+    accent-color: #008f36;
+    margin-right: 3px;
+}
+
+@media (max-width: 850px) {
+    .send-message-container {
+        padding: 6vw 2vw 6vw 2vw;
+        max-width: 99vw;
+    }
+    #image_preview img {
+        max-width: 95vw;
+        max-height: 120px;
+    }
+}
+@media (max-width: 600px) {
+    .send-message-container {
+        border-radius: 9px;
+        padding: 4vw 1vw 4vw 1vw;
+    }
+    #image_preview img {
+        padding: 0 0;
+        max-width: 98vw;
+        max-height: 90px;
+    }
+}
+
+/* Progress Modal */
+.progress-modal {
+    position: fixed;
+    z-index: 10000;
+    left: 0; top: 0; right: 0; bottom: 0;
+    background: rgba(26,54,30,0.13);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.progress-modal-content {
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 2px 20px #e7fbe6;
+    padding: 28px 32px 22px 32px;
+    min-width: 320px;
+    max-width: 97vw;
+    text-align: center;
+}
+.progress-title {
+    font-weight: 600;
+    color: #007a4d;
+    font-size: 1.11em;
+}
+.progress-bar-container {
+    margin: 18px 0 9px 0;
+    height: 16px;
+    width: 100%;
+    border-radius: 7px;
+    background: #f2ffed;
+    box-shadow: 0 1px 4px #e7fbe6;
+    overflow: hidden;
+}
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #25a154, #7ee885);
+    border-radius: 7px;
+    width: 0%;
+    transition: width 0.4s;
+}
+.btn-danger {
+    background: #f4cccc !important;
+    color: #d52b1e !important;
+    border-radius: 8px;
+    margin-top: 16px;
+    font-weight: 600;
+    padding: 9px 26px;
+    border: none;
+}
+.btn-danger:hover {
+    background: #e44f43 !important;
+    color: #fff !important;
+}
+</style>
+<div class="send-message-container">
+    <h2 style="font-weight: 700; color: #097c22; margin-bottom: 36px; margin-left: auto; margin-right: auto; text-align: center;">
+            ส่งข้อความธรรมดา+รูปภาพ
+    </h2>
     <form method="post" enctype="multipart/form-data">
         <label>ข้อความ:</label>
         <textarea name="text" rows="4" style="width:100%;resize:vertical;" placeholder="ใส่ข้อความ..."></textarea>
@@ -23,6 +215,17 @@
 
         <!-- Preview รูป -->
         <div id="image_preview" style="margin:14px 0;"></div>
+        <!-- เลือกเวลา -->
+        <label>เวลาส่ง:</label>
+        <div style="display: flex; gap: 14px; align-items: center; margin-bottom: 16px;">
+            <label>
+                <input type="radio" name="send_time_option" value="now" checked> ส่งตอนนี้
+            </label>
+            <label>
+                <input type="radio" name="send_time_option" value="schedule"> ตั้งเวลาส่ง
+            </label>
+            <input type="datetime-local" name="scheduled_time" id="scheduled_time" style="display:none;">
+        </div>
 
         <label>ส่งถึง:</label>
         <select name="target" required style="width:100%;">
@@ -46,18 +249,20 @@
 
     <!-- Popup Modal -->
     <div id="sendProgressModal" class="progress-modal" style="display:none;">
-    <div class="progress-modal-content">
-        <span class="progress-title">🚀 กำลังส่งข้อความ...</span>
-        <div class="progress-info">
-        <span id="progressStatusText">เริ่มต้นส่ง...</span>
-        <div class="progress-bar-container">
-            <div id="progressBar" class="progress-bar"></div>
+        <div class="progress-modal-content">
+            <span class="progress-title">🚀 กำลังส่งข้อความ...</span>
+            <div class="progress-info">
+            <span id="progressStatusText">เริ่มต้นส่ง...</span>
+            <div class="progress-bar-container">
+                <div id="progressBar" class="progress-bar"></div>
+            </div>
+            <span id="progressCount"></span>
+            </div>
+            <button id="cancelSendBtn" class="btn btn-danger">⏹️ หยุดการส่งข้อความ</button>
         </div>
-        <span id="progressCount"></span>
-        </div>
-        <button id="cancelSendBtn" class="btn btn-danger">⏹️ หยุดการส่งข้อความ</button>
     </div>
-    </div>
+    {{ super() }}
+</div>
 
     <script>
         const imageUrlInput = document.getElementById('image_url');
@@ -155,68 +360,11 @@
                 label.textContent = '';
             }
         }
-    </script>
-
-    <!-- <script>
-    document.getElementById('image_url').oninput = function(evt) {
-        const preview = document.getElementById('image_preview');
-        const url = this.value;
-        if (url && /^https?:\/\/.+\.(jpg|jpeg|png|gif)$/i.test(url)) {
-            preview.innerHTML = `<img src="${url}" style="max-width:320px;max-height:220px;border-radius:10px;box-shadow:0 2px 12px #bbb;">`;
-        } else {
-            preview.innerHTML = "";
-        }
-    };
-
-    let sending = false;
-    let sendProgressInterval = null;
-
-    // เปิด Modal ตอนเริ่มส่ง
-    function openSendModal() {
-    document.getElementById('sendProgressModal').style.display = "flex";
-    updateProgressUI(0, 0, 0); // เริ่มต้น
-    }
-
-    // ปิด Modal
-    function closeSendModal() {
-    document.getElementById('sendProgressModal').style.display = "none";
-    }
-
-    // อัปเดต Progress UI
-    function updateProgressUI(current, total, fail) {
-    let percent = total ? Math.floor((current / total) * 100) : 0;
-    document.getElementById('progressBar').style.width = percent + "%";
-    document.getElementById('progressStatusText').innerText =
-        `ส่งข้อความแล้ว ${current} / ${total} คน${fail ? ", ล้มเหลว " + fail + " คน" : ""}`;
-    document.getElementById('progressCount').innerText =
-        `(${percent}% เสร็จสิ้น)`;
-    }
-
-    // เรียกใช้ตอน submit form
-    document.querySelector("form").onsubmit = function(e) {
-    openSendModal();
-    sending = true;
-    // Start polling progress (AJAX)
-    sendProgressInterval = setInterval(function() {
-        fetch('/send_progress')
-        .then(r => r.json())
-        .then(d => {
-            updateProgressUI(d.current, d.total, d.fail || 0);
-            if (d.done) {
-            setTimeout(closeSendModal, 800);
-            clearInterval(sendProgressInterval);
+        // ซ่อน/โชว์ input เวลา
+        document.querySelectorAll('input[name="send_time_option"]').forEach(radio => {
+            radio.onchange = function() {
+                document.getElementById('scheduled_time').style.display = (this.value === 'schedule') ? '' : 'none';
             }
         });
-    }, 800);
-    };
-
-    // ปุ่มยกเลิก
-    document.getElementById('cancelSendBtn').onclick = function() {
-    fetch('/cancel_send', {method:'POST'}).then(() => {
-        sending = false;
-        closeSendModal();
-        window.location.reload();
-    });
-    };
-    </script> -->
+    </script>
 {% endblock %}

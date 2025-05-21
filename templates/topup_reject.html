@@ -1,32 +1,131 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="container my-5">
-    <h2 class="mb-4 text-danger">ปฏิเสธสลิปเติมเงิน</h2>
-    <div class="card shadow p-4">
-        <div class="mb-3">
-            <strong>ชื่อผู้ใช้:</strong> {{ slip.username }}
-        </div>
-        <div class="mb-3">
-            <strong>จำนวนเงิน:</strong> {{ slip.amount }} บาท
-        </div>
-        <div class="mb-3">
-            <strong>วัน-เวลา:</strong> {{ slip.created_at.strftime("%Y-%m-%d %H:%M:%S") }}
-        </div>
-        <div class="mb-3">
-            <strong>สถานะ:</strong>
-            <span class="badge bg-danger">{{ slip.status|capitalize }}</span>
-        </div>
-        <div class="mb-3">
-            <strong>รูปสลิป:</strong><br>
-            <img src="{{ url_for('static', filename='uploads/' ~ slip.image) }}"
-                 alt="สลิป" class="img-fluid border" style="max-width: 400px; margin-top: 10px;">
-        </div>
-        <form method="post">
-            <button type="submit" class="btn btn-danger btn-lg w-100">
-                ❌ ปฏิเสธสลิปนี้
-            </button>
-        </form>
-        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary mt-3 w-100">ย้อนกลับ</a>
+<style>
+.rt-reject-slip-container {
+    max-width: 470px;
+    margin: 38px auto 42px auto;
+    background: #fff9f9;
+    border-radius: 22px;
+    box-shadow: 0 4px 32px #f1b1b950, 0 0 0 1.5px #ffe6e6;
+    padding: 34px 36px 28px 36px;
+}
+.rt-reject-slip-title {
+    color: #c52323;
+    font-weight: 700;
+    font-size: 1.55em;
+    margin-bottom: 20px;
+    text-align: center;
+    letter-spacing: 1px;
+}
+.rt-reject-slip-detail {
+    margin-bottom: 14px;
+    font-size: 1.08em;
+    color: #472727;
+}
+.rt-reject-slip-label {
+    font-weight: 600;
+    color: #be3030;
+    margin-right: 6px;
+}
+.rt-reject-slip-img {
+    max-width: 100%;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px #f5d6d6;
+    border: 1.5px solid #ffe6e6;
+    margin-top: 14px;
+    margin-bottom: 20px;
+}
+.rt-reject-slip-status {
+    display: inline-block;
+    padding: 4.5px 18px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 1.03em;
+    background: #fff1f1;
+    color: #c52323;
+    border: 1.5px solid #ffdede;
+    margin-left: 5px;
+    letter-spacing: 1px;
+}
+.rt-reject-slip-btn {
+    width: 100%;
+    background: linear-gradient(90deg,#e44f43 60%, #f1705c 100%);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.17em;
+    font-weight: 700;
+    padding: 16px 0;
+    margin: 6px 0 10px 0;
+    letter-spacing: 1.2px;
+    box-shadow: 0 2px 12px #f9d5d5;
+    cursor: pointer;
+    transition: background 0.18s;
+}
+.rt-reject-slip-btn:hover, .rt-reject-slip-btn:focus {
+    background: linear-gradient(90deg,#f1705c 0%, #e44f43 100%);
+}
+.rt-reject-slip-back {
+    width: 100%;
+    display: inline-block;
+    background: #f9f9f9;
+    color: #c52323;
+    border: none;
+    border-radius: 10px;
+    font-size: 1.08em;
+    font-weight: 600;
+    padding: 12px 0;
+    text-align: center;
+    margin-top: 12px;
+    text-decoration: none;
+    box-shadow: 0 1px 6px #fde0e0;
+    transition: background 0.15s, color 0.15s;
+}
+.rt-reject-slip-back:hover {
+    background: #ffecec;
+    color: #8f2525;
+}
+@media (max-width: 650px) {
+    .rt-reject-slip-container {
+        max-width: 99vw;
+        padding: 7vw 3vw 7vw 3vw;
+        border-radius: 14px;
+    }
+    .rt-reject-slip-title { font-size: 1.15em; }
+    .rt-reject-slip-btn, .rt-reject-slip-back { font-size: 1em; }
+}
+@media (max-width: 450px) {
+    .rt-reject-slip-container {
+        padding: 3vw 1vw 3vw 1vw;
+        border-radius: 8px;
+    }
+}
+</style>
+<div class="rt-reject-slip-container">
+    <div class="rt-reject-slip-title">ปฏิเสธสลิปเติมเงิน</div>
+    <div class="rt-reject-slip-detail">
+        <span class="rt-reject-slip-label">ชื่อผู้ใช้:</span>{{ slip.username }}
     </div>
+    <div class="rt-reject-slip-detail">
+        <span class="rt-reject-slip-label">จำนวนเงิน:</span>{{ slip.amount }} บาท
+    </div>
+    <div class="rt-reject-slip-detail">
+        <span class="rt-reject-slip-label">วัน-เวลา:</span>{{ slip.created_at.strftime("%Y-%m-%d %H:%M:%S") }}
+    </div>
+    <div class="rt-reject-slip-detail">
+        <span class="rt-reject-slip-label">สถานะ:</span>
+        <span class="rt-reject-slip-status">{{ slip.status|capitalize }}</span>
+    </div>
+    <div class="rt-reject-slip-detail">
+        <span class="rt-reject-slip-label">รูปสลิป:</span><br>
+        <img src="{{ url_for('static', filename='uploads/' ~ slip.image) }}"
+             alt="สลิป" class="rt-reject-slip-img">
+    </div>
+    <form method="post">
+        <button type="submit" class="rt-reject-slip-btn">
+            ❌ ปฏิเสธสลิปนี้
+        </button>
+    </form>
+    <a href="{{ url_for('admin_dashboard') }}" class="rt-reject-slip-back">ย้อนกลับ</a>
 </div>
 {% endblock %}

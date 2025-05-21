@@ -1,11 +1,125 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="dashboard-center">
-    <div class="history-card">
+<style>
+.topuphistory-center {
+    min-height: 85vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    background: none;
+}
+.topuphistory-card {
+    background: #f6fff6;
+    border-radius: 22px;
+    box-shadow: 0 4px 24px rgba(46,125,50,0.08), 0 0 0 1px #e7fbe6;
+    padding: 40px 42px 32px 42px;
+    max-width: 50000px;
+    width: 1000%;
+    margin: 32px 0 0 -250px !important;
+}
+
+.topuphistory-card > div:first-child {
+    text-align: center;
+    letter-spacing: 0.5px;
+    margin-bottom: 28px;
+}
+
+.topuphistory-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: #fff;
+    border-radius: 17px;
+    overflow: hidden;
+    font-size: 1.04em;
+    box-shadow: 0 2px 14px rgba(0,0,0,0.04);
+}
+.topuphistory-table th, .topuphistory-table td {
+    padding: 15px 10px;
+    text-align: center;
+    vertical-align: middle;
+}
+.topuphistory-table th {
+    background: #e7fbe6;
+    color: #007a4d;
+    font-weight: 600;
+    border-bottom: 2.5px solid #cce6d3;
+    font-size: 1.08em;
+    letter-spacing: 1px;
+}
+.topuphistory-table tr {
+    transition: background 0.15s;
+}
+.topuphistory-table tbody tr:hover {
+    background: #f2ffed;
+}
+.topuphistory-table td {
+    border-bottom: 1px solid #f4f4f4;
+    font-size: 1em;
+}
+
+/* Badge Styles */
+.topuphistory-badge {
+    padding: 5px 13px;
+    border-radius: 8px;
+    font-size: 0.99em;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    vertical-align: middle;
+    display: inline-block;
+}
+.topuphistory-badge-qr      { background: #e5eaff; color: #4974e9;}
+.topuphistory-badge-slip    { background: #f6e9e1; color: #b65c25;}
+.topuphistory-badge-other   { background: #eaeaea; color: #666; }
+.topuphistory-badge-pending { background: #fff5dc; color: #ff9f1c;}
+.topuphistory-badge-success { background: #e7fbe6; color: #27ae60;}
+.topuphistory-badge-danger  { background: #fae1e2; color: #e44f43;}
+
+/* Image Style */
+.topuphistory-table img {
+    border-radius: 9px;
+    box-shadow: 0 1px 8px #cef6df;
+    max-width: 48px;
+    max-height: 48px;
+    margin: 0 auto;
+    display: block;
+}
+
+@media (max-width: 900px) {
+    .topuphistory-card {
+        padding: 5vw 2vw 4vw 2vw;
+        max-width: 99vw;
+        border-radius: 14px;
+    }
+    .topuphistory-table th, .topuphistory-table td {
+        font-size: 0.95em;
+        padding: 10px 5px;
+    }
+}
+@media (max-width: 600px) {
+    .topuphistory-center {
+        min-height: 60vh;
+    }
+    .topuphistory-card {
+        padding: 2vw 0vw 3vw 0vw;
+        border-radius: 8px;
+        max-width: 100vw;
+        margin: 12px 0 0 0;
+    }
+    .topuphistory-table th, .topuphistory-table td {
+        font-size: 0.90em;
+        padding: 7px 2px;
+    }
+    .topuphistory-table th, .topuphistory-table td { min-width: 50px; }
+    .topuphistory-table img { max-width: 34px; max-height: 34px;}
+}
+</style>
+<div class="topuphistory-center">
+    <div class="topuphistory-card">
         <div style="font-size:1.7em;font-weight:700;color:#16913d;margin-bottom:20px;">
             ประวัติการเติมเครดิต
         </div>
-        <table class="history-table">
+        <table class="topuphistory-table">
             <thead>
                 <tr>
                     <th>วันที่</th>

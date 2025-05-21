@@ -1,62 +1,218 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>แก้ไขริชเมสเสจ</h2>
-<form id="flex-form" method="POST" enctype="multipart/form-data">
-    <div class="mb-3">
-        <label for="template_name" style="font-weight:bold;">ชื่อไอเทม</label>
-        <input type="text" name="template_name" id="template_name" class="form-control" maxlength="100" required>
-        <input type="hidden" id="alt_text" name="alt_text">
-        <small class="form-text text-muted">ชื่อจะถูกแสดงในรายการแจ้งเตือนแบบทุกรายการและรายการชื่อเล่น</small>
-    </div>
-    
-    <!-- อัปโหลดรูป -->
-    <div class="upload-area">
-        <label class="upload-preview" id="drop-zone" style="cursor:pointer;">
-            <span id="preview-placeholder">เลือกภาพ<br>หรือวางไฟล์ที่นี่</span>
-            <img id="preview-img" style="display:none;" />
-            <input type="file" id="input-image" name="image" accept="image/*" class="d-none">
-        </label>
-        <div>
-            <button type="button" class="upload-btn" id="select-btn">เลือก</button>
-            <div style="margin:6px 0 0 0;font-size:0.98rem;">
-                <span style="color:#333;">รูป</span>
-            </div>
-            <small>ไฟล์ PNG, JPG ขนาดไม่เกิน 5MB</small>
-            <input type="hidden" id="uploaded-url" name="uploaded_url">
-            <input type="hidden" id="aspect-ratio" name="aspect_ratio">
+<style>
+.edit-flex-container {
+    background: #f6fff6;
+    border-radius: 20px;
+    box-shadow: 0 4px 24px rgba(46,125,50,0.07), 0 0 0 1px #e7fbe6;
+    padding: 24px 24px 4px 24px;
+    max-width: 2000px;
+    margin: 32px 0 0 -280px !important;
+}
+.edit-flex-container h2 {
+    font-weight: 700;
+    color: #097c22;
+    margin-bottom: 32px;
+    font-size: 2em;
+    text-align: center;
+    letter-spacing: 0.5px;
+}
+.edit-flex-container label {
+    font-weight: 600;
+    color: #157439;
+    margin-bottom: 7px;
+    display: block;
+    font-size: 1.09em;
+}
+.edit-flex-container input[type="text"],
+.edit-flex-container input[type="file"],
+.edit-flex-container input[type="hidden"],
+.edit-flex-container select,
+.edit-flex-container textarea {
+    width: 100%;
+    padding: 10px 13px;
+    border-radius: 9px;
+    border: 1.5px solid #d7efde;
+    background: #fff;
+    font-size: 1.04em;
+    margin-bottom: 18px;
+    box-sizing: border-box;
+    transition: border 0.17s;
+}
+.edit-flex-container input[type="text"]:focus,
+.edit-flex-container select:focus,
+.edit-flex-container textarea:focus {
+    border: 1.5px solid #25a154;
+    outline: none;
+}
+.edit-flex-container .form-text {
+    color: #858a85;
+    font-size: 0.99em;
+    margin-bottom: 6px;
+    margin-top: -10px;
+}
+.edit-flex-container .mb-3 {
+    margin-bottom: 18px !important;
+}
+
+.upload-area {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    margin-bottom: 22px;
+}
+.upload-preview {
+    background: #f2ffed;
+    border: 1.7px dashed #aee0bc;
+    border-radius: 13px;
+    width: 130px; height: 130px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-direction: column;
+    position: relative;
+    text-align: center;
+    transition: border 0.17s, box-shadow 0.17s;
+}
+.upload-preview.active {
+    border: 2.2px solid #25a154;
+    box-shadow: 0 0 12px #c2f0c6;
+}
+#preview-placeholder {
+    color: #2b7a43;
+    font-size: 1.05em;
+    opacity: 0.68;
+    pointer-events: none;
+}
+#preview-img {
+    max-width: 120px;
+    max-height: 120px;
+    border-radius: 10px;
+    box-shadow: 0 2px 12px #bbb;
+    display: block;
+    margin: 0 auto;
+}
+.upload-btn {
+    background: #e7fbe6;
+    color: #008f36;
+    border: none;
+    border-radius: 8px;
+    padding: 7px 18px;
+    font-weight: 600;
+    font-size: 1em;
+    cursor: pointer;
+    margin-bottom: 4px;
+    box-shadow: 0 2px 7px #e7fbe6;
+    transition: background 0.15s, color 0.15s;
+}
+.upload-btn:hover { background: #c2f0c6; color: #0dbe5a; }
+
+.edit-flex-container .form-select {
+    border-radius: 8px;
+    border: 1.5px solid #d7efde;
+    background: #fff;
+    margin-bottom: 0;
+}
+.edit-flex-container .form-select:focus {
+    border: 1.5px solid #25a154;
+}
+
+.edit-flex-container .btn-success {
+    background: #008f36 !important;
+    color: #fff !important;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 0;
+    font-size: 1.15em;
+    font-weight: 600;
+    box-shadow: 0 2px 8px #e8fce2;
+    transition: background 0.18s, color 0.18s;
+    display: block;
+    width: 100% !important;
+    margin: 36px auto 0 auto;
+}
+.edit-flex-container .btn-success:hover,
+.edit-flex-container .btn-success:focus {
+    background: #0dbe5a !important;
+    color: #fff !important;
+}
+
+@media (max-width: 900px) {
+    .edit-flex-container {
+        padding: 7vw 3vw 5vw 3vw;
+        max-width: 99vw;
+    }
+    .upload-preview, #preview-img { max-width: 88vw; max-height: 90vw; }
+    .upload-area { flex-direction: column; gap: 10px; align-items: flex-start; }
+}
+@media (max-width: 600px) {
+    .edit-flex-container {
+        border-radius: 9px;
+        padding: 3vw 1vw 2vw 1vw;
+    }
+    .upload-preview, #preview-img { max-width: 95vw; max-height: 120px;}
+}
+</style>
+<div class="edit-flex-container">
+    <h2 style="font-weight: 700; color: #19693c; margin-bottom: 16px; text-align: center;">แก้ไขริชเมสเสจ</h2>
+    <form id="flex-form" method="POST" enctype="multipart/form-data">
+        <div class="mb-3">
+            <label for="template_name" style="font-weight:bold;">ชื่อไอเทม</label>
+            <input type="text" name="template_name" id="template_name" class="form-control" maxlength="100" required>
+            <input type="hidden" id="alt_text" name="alt_text">
+            <small class="form-text text-muted">ชื่อจะถูกแสดงในรายการแจ้งเตือนแบบทุกรายการและรายการชื่อเล่น</small>
         </div>
-    </div>
+        
+        <!-- อัปโหลดรูป -->
+        <div class="upload-area">
+            <label class="upload-preview" id="drop-zone" style="cursor:pointer;">
+                <span id="preview-placeholder">เลือกภาพ<br>หรือวางไฟล์ที่นี่</span>
+                <img id="preview-img" style="display:none;" />
+                <input type="file" id="input-image" name="image" accept="image/*" class="d-none">
+            </label>
+            <div>
+                <button type="button" class="upload-btn" id="select-btn">เลือก</button>
+                <div style="margin:6px 0 0 0;font-size:0.98rem;">
+                    <span style="color:#333;">รูป</span>
+                </div>
+                <small>ไฟล์ PNG, JPG ขนาดไม่เกิน 5MB</small>
+                <input type="hidden" id="uploaded-url" name="uploaded_url">
+                <input type="hidden" id="aspect-ratio" name="aspect_ratio">
+            </div>
+        </div>
 
-    <!-- ประเภท -->
-    <div class="mb-3">
-        <label for="type-select" style="font-weight:bold;">ประเภท</label>
-        <select id="type-select" class="form-select" name="flex_type" required>
-            <option value="">เลือก</option>
-            <option value="link">ลิงก์</option>
-            <option value="message">ข้อความ</option>
-        </select>
-    </div>
-    
-    <!-- ลิงก์ -->
-    <div id="input-link" style="display:none;" class="mb-3">
-        <label for="input-url" style="font-weight:bold;">ใส่ลิงก์</label>
-        <input type="text" id="input-url" class="form-control" placeholder="ใส่ลิงก์" maxlength="200">
-        <small class="form-text text-muted">ใส่ลิงก์เพื่อแสดงบนป้ายแอ็กชัน เช่น เปิดลิงก์, ดูเว็บไซต์</small>
-        <textarea class="form-control mt-2" rows="2" maxlength="100" placeholder="ใส่ข้อความเพื่อแสดงบนป้ายแอ็กชัน เช่น เปิดลิงก์, ดูเว็บไซต์" id="input-link-label"></textarea>
-        <div class="text-end"><span id="link-label-count">0</span>/100</div>
-    </div>
-    <!-- ข้อความ -->
-    <div id="input-message" style="display:none;" class="mb-3">
-        <label for="input-text" style="font-weight:bold;">ใส่ข้อความ</label>
-        <textarea class="form-control" rows="2" maxlength="50" placeholder="ใส่ข้อความ" id="input-text"></textarea>
-        <small class="form-text text-muted">ข้อความนี้จะถูกส่งไปยังห้องแชทโดยอัตโนมัติเมื่อผู้ใช้แตะป้ายนี้</small>
-        <div class="text-end"><span id="msg-count">0</span>/50</div>
-    </div>
-    
-    <input type="hidden" id="flex_json" name="flex_json">
-    <button type="submit" class="btn btn-success btn-lg w-25" style="margin:auto;display:block;">บันทึก</button>
-</form>
-
+        <!-- ประเภท -->
+        <div class="mb-3">
+            <label for="type-select" style="font-weight:bold;">ประเภท</label>
+            <select id="type-select" class="form-select" name="flex_type" required>
+                <option value="">เลือก</option>
+                <option value="link">ลิงก์</option>
+                <option value="message">ข้อความ</option>
+            </select>
+        </div>
+        
+        <!-- ลิงก์ -->
+        <div id="input-link" style="display:none;" class="mb-3">
+            <label for="input-url" style="font-weight:bold;">ใส่ลิงก์</label>
+            <input type="text" id="input-url" class="form-control" placeholder="ใส่ลิงก์" maxlength="200">
+            <small class="form-text text-muted">ใส่ลิงก์เพื่อแสดงบนป้ายแอ็กชัน เช่น เปิดลิงก์, ดูเว็บไซต์</small>
+            <textarea class="form-control mt-2" rows="2" maxlength="100" placeholder="ใส่ข้อความเพื่อแสดงบนป้ายแอ็กชัน เช่น เปิดลิงก์, ดูเว็บไซต์" id="input-link-label"></textarea>
+            <div class="text-end"><span id="link-label-count">0</span>/100</div>
+        </div>
+        <!-- ข้อความ -->
+        <div id="input-message" style="display:none;" class="mb-3">
+            <label for="input-text" style="font-weight:bold;">ใส่ข้อความ</label>
+            <textarea class="form-control" rows="2" maxlength="50" placeholder="ใส่ข้อความ" id="input-text"></textarea>
+            <small class="form-text text-muted">ข้อความนี้จะถูกส่งไปยังห้องแชทโดยอัตโนมัติเมื่อผู้ใช้แตะป้ายนี้</small>
+            <div class="text-end"><span id="msg-count">0</span>/50</div>
+        </div>
+        
+        <input type="hidden" id="flex_json" name="flex_json">
+        <button type="submit" class="btn btn-success btn-lg w-25" style="margin:auto;display:block;">บันทึก</button>
+    </form>
+    {{ super() }}
+</div>
 <script>
 // @ts-nocheck
 var template = {{ template|tojson|default('null', true)|safe }};

@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+.table-wrap {
+    background: #f6fff6;
+    border-radius: 18px;
+    box-shadow: 0 4px 24px rgba(46, 125, 50, 0.08), 0 0 0 1px #e7fbe6;
+    padding: 24px 24px 4px 24px;
+    width: 90vw;
+    max-width: 1450px;
+    margin: 32px 0 0 -300px !important;
+}
+.table-modern {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: #fff;
+    border-radius: 16px;
+    overflow: hidden;
+    font-size: 1rem;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+}
+.table-modern th, .table-modern td {
+    padding: 16px 12px;
+    text-align: center;         /* กลางแนวนอน */
+    vertical-align: middle;     /* กลางแนวตั้ง */
+}
+.table-modern th {
+    background: #e7fbe6;
+    color: #007a4d;
+    font-weight: 600;
+    border-bottom: 2px solid #d7efde;
+    letter-spacing: 1px;
+    font-size: 1.05em;
+}
+.table-modern tr {
+    transition: background 0.18s;
+}
+.table-modern tbody tr:hover {
+    background: #f2ffed;
+}
+.table-modern td {
+    border-bottom: 1px solid #f2f2f2;
+}
+.status-success {
+    color: #25a154;
+    font-weight: 500;
+}
+.status-pending {
+    color: #ff9900;
+    font-weight: 500;
+}
+.status-fail {
+    color: #e44f43;
+    font-weight: 500;
+}
+@media (max-width: 900px) {
+    .table-modern th, .table-modern td { font-size: 0.93em; padding: 10px 4px;}
+    .table-wrap {padding: 6vw 2vw 2vw 2vw;}
+    .table-modern th, .table-modern td { min-width: 80px; }
+}
+img.message-img {
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(34,139,34,0.07);
+    margin: 0 auto 3px auto;
+    max-width: 120px; max-height: 120px; width: auto; height: auto; display: block;
+}
+.flex-detail-alt {
+    font-size: 12px;
+    color: #888;
+    margin-top: 8px;
+}   
+</style>
+<div class="table-wrap">
+    <h2 style="font-weight: 700; color: #19693c; margin-bottom: 16px; text-align: center;">ประวัติการส่งข้อความ</h2>
+    <table class="table-modern">
+        <thead>
+            <tr>
+                <th>ชื่อไลน์ OA</th>
+                <th>ประเภท</th>
+                <th>วันที่ส่ง</th>
+                <th>ประเภทเวลา</th>
+                <th>รายละเอียด</th>
+                <th>สถานะ</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for msg in messages %}
+            <tr>
+                <td>{{ oa_map[msg._oa_id]|default(msg._oa_id) }}</td>
+                <td>
+                    {% if msg.type == "flex" %}
+                        ริชเมสเสจ
+                    {% elif msg.type == "text" %}
+                        ข้อความ
+                    {% elif msg.type == "image" %}
+                        รูปภาพ
+                    {% elif msg.type == "text_image" %}
+                        ข้อความ+รูป
+                    {% else %}
+                        {{ msg.type }}
+                    {% endif %}
+                </td>
+                <td>
+                    {% if msg.sent_at %}
+                        {{ msg.sent_at.strftime("%d/%m/%Y %H:%M") }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>
+                    {% set status = msg.status %}
+                    {% set scheduled_time = msg.detail.get('scheduled_time') if msg.detail else None %}
+                    {% if not scheduled_time and msg.get('scheduled_time') %}
+                        {% set scheduled_time = msg.scheduled_time %}
+                    {% endif %}
+                    {% if status in ['pending', 'waiting'] %}
+                        <span>ตั้งเวลาล่วงหน้า</span>
+                    {% else %}
+                        <span>ส่งตอนนี้</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if msg.type == "flex" %}
+                        {% set json = msg.detail.get('json', {}) %}
+                        {% set image_url = '' %}
+                        {% if json.get('hero', {}).get('url') %}
+                            {% set image_url = json.hero.url %}
+                        {% elif json.get('contents', []) and json.contents[0].get('hero', {}).get('url') %}
+                            {% set image_url = json.contents[0].hero.url %}
+                        {% endif %}
+                        {% if image_url %}
+                            <img src="{{ image_url }}" alt="Flex Image" class="message-img">
+                        {% else %}
+                            <span style="color:#888;">(ไม่มีรูปใน Flex)</span>
+                        {% endif %}
+                        <div class="flex-detail-alt">
+                            ข้อความที่แจ้งเตือน: {{ msg.detail.get('altText', '-') }}
+                        </div>
+                    {% else %}
+                        {% if msg.detail.get('text') %}
+                            <div style="margin-bottom:8px;">{{ msg.detail.get('text') }}</div>
+                        {% endif %}
+                        {% if msg.detail.get('image_url') %}
+                            <img src="{{ msg.detail.image_url }}" alt="Image" class="message-img">
+                        {% endif %}
+                    {% endif %}
+                </td>
+                <td>
+                    {% if msg.status in ["pending", "waiting"] %}
+                        <span class="status-pending">รอเวลาส่ง</span>
+                    {% elif msg.status in ["sent", "success"] %}
+                        <span class="status-success">ส่งสำเร็จ</span>
+                    {% elif msg.status in ["error", "fail"] %}
+                        <span class="status-fail">ส่งไม่สำเร็จ</span>
+                        {% if msg.error_msg %}
+                            <br><small>{{ msg.error_msg }}</small>
+                        {% elif msg.detail.get('error_msg') %}
+                            <br><small>{{ msg.detail.error_msg }}</small>
+                        {% endif %}
+                    {% else %}
+                        {{ msg.status }}
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

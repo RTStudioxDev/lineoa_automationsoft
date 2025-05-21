@@ -1,67 +1,156 @@
 {% extends "base.html" %}
 {% block content %}
-  <h2 style="margin-bottom:20px;">เลือกบัญชี <b>LINE Official Account</b></h2>
-  <form method="post" id="oa-login-form">
-    <label for="oa_id">เลือกบัญชี OA:</label>
-    <select name="oa_id" id="oa_id" required style="width:100%;max-width:420px;margin-bottom:14px;">
-      {% if oa_list and oa_list|length > 0 %}
-        {% for oa in oa_list %}
-          <option value="{{ oa.id }}">{{ oa.name }}</option>
-        {% endfor %}
-      {% else %}
-        <option value="">-- ยังไม่มีบัญชี OA กรุณาเพิ่ม OA ใหม่ก่อน --</option>
-      {% endif %}
-    </select>
-    <br>
-    <button type="submit" id="submit-btn" class="btn"
-      style="min-width:120px;background:#008f36;color:#fff;font-weight:600;border-radius:7px;padding:9px 26px;box-shadow:0 2px 8px #e7fbe8;margin:10px 0 0 0;transition:background 0.2s;"
-      {% if not oa_list or oa_list|length == 0 %}disabled{% endif %}>
-      เข้าสู่ระบบ
-    </button>
-  </form>
+<style>
+.oa-login-center {
+    min-height: 88vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+.oa-login-card {
+    background: #f6fff6;
+    border-radius: 22px;
+    box-shadow: 0 4px 24px rgba(46,125,50,0.08), 0 0 0 1px #e7fbe6;
+    padding: 38px 46px 36px 46px;
+    width: 98vw;        /* กว้างเต็มจอ (ลบขอบเล็กน้อย) */
+    max-width: 1050px;  /* หรือปรับเป็น 1200px ได้ */
+    min-width: 320px;
+    margin: 0 auto 28px auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-sizing: border-box;
+}
+.oa-login-card h2 {
+    font-weight: 700;
+    color: #097c22;
+    margin-bottom: 24px;
+    font-size: 1.35em;
+    text-align: center;
+}
+.oa-login-form label {
+    font-weight: 500;
+    color: #145f30;
+    margin-bottom: 6px;
+    display: block;
+    font-size: 1.05em;
+}
+.oa-login-form select {
+    width: 100%;
+    padding: 11px 13px;
+    border-radius: 8px;
+    border: 1.5px solid #d7efde;
+    background: #fff;
+    font-size: 1.02em;
+    margin-bottom: 16px;
+    box-sizing: border-box;
+    transition: border 0.16s;
+}
+.oa-login-form select:focus {
+    border: 1.5px solid #22bb66;
+    outline: none;
+}
+.oa-login-btn {
+    width: 100%;
+    background: #008f36;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 11px 0;
+    font-size: 1.1em;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 8px #e7fbe2;
+    margin: 7px 0 0 0;
+    transition: background 0.18s, color 0.18s;
+    letter-spacing: 1px;
+}
+.oa-login-btn:disabled {
+    background: #d2efd8;
+    color: #aaa;
+    cursor: not-allowed;
+}
+.oa-login-btn:hover:not(:disabled),
+.oa-login-btn:focus:not(:disabled) {
+    background: #0dbe5a;
+    color: #fff;
+}
 
-  <a href="{{ url_for('add_oa') }}"
-    class="btn"
-    style="
-      background: linear-gradient(90deg,#22c55e 60%, #16a34a 100%);
-      color: #fff;
-      padding: 9px 20px 9px 14px;
-      border: none;
-      border-radius: 10px;
-      font-size: 1.1em;
-      font-weight: 600;
-      box-shadow: 0 2px 8px #e7fbe8;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      margin: 22px 0 16px 0;
-      transition: background 0.25s, box-shadow 0.25s;
-    "
-    onmouseover="this.style.background='linear-gradient(90deg,#16a34a 0%, #22c55e 100%)';this.style.boxShadow='0 4px 18px #b6eac5';"
-    onmouseout="this.style.background='linear-gradient(90deg,#22c55e 60%, #16a34a 100%)';this.style.boxShadow='0 2px 8px #e7fbe8';"
-  >
-    <svg width="20" height="20" viewBox="0 0 20 20" style="vertical-align:middle" fill="none">
-      <circle cx="10" cy="10" r="10" fill="#fff" fill-opacity="0.15"/>
-      <path d="M10 6V14M6 10H14" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
-    </svg>
-    <span style="vertical-align:middle;">เพิ่มบัญชี OA ใหม่</span>
-  </a>
+.oa-login-add {
+    background: linear-gradient(90deg,#22c55e 60%, #16a34a 100%);
+    color: #fff;
+    padding: 10px 22px 10px 16px;
+    border: none;
+    border-radius: 10px;
+    font-size: 1.09em;
+    font-weight: 600;
+    box-shadow: 0 2px 8px #e7fbe8;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 26px 0 10px 0;
+    transition: background 0.25s, box-shadow 0.25s;
+}
+.oa-login-add:hover, .oa-login-add:focus {
+    background: linear-gradient(90deg,#16a34a 0%, #22c55e 100%);
+    box-shadow: 0 4px 16px #b6eac5;
+}
+@media (max-width: 600px) {
+    .oa-login-card {
+        padding: 7vw 2vw 7vw 2vw;
+        border-radius: 10px;
+        max-width: 99vw;
+    }
+    .oa-login-card h2 { font-size: 1.05em;}
+    .oa-login-form label, .oa-login-form select, .oa-login-btn { font-size: 1em;}
+    .oa-login-add { font-size: 1em; }
+}
+</style>
+<div class="oa-login-center">
+  <div class="oa-login-card">
+    <h2>เลือกบัญชี <b>LINE Official Account</b></h2>
+    <form method="post" id="oa-login-form" class="oa-login-form">
+      <label for="oa_id">เลือกบัญชี OA:</label>
+      <select name="oa_id" id="oa_id" required>
+        {% if oa_list and oa_list|length > 0 %}
+          {% for oa in oa_list %}
+            <option value="{{ oa.id }}">{{ oa.name }}</option>
+          {% endfor %}
+        {% else %}
+          <option value="">-- ยังไม่มีบัญชี OA กรุณาเพิ่ม OA ใหม่ก่อน --</option>
+        {% endif %}
+      </select>
+      <button type="submit" id="submit-btn" class="oa-login-btn"
+        {% if not oa_list or oa_list|length == 0 %}disabled{% endif %}>
+        เข้าสู่ระบบ
+      </button>
+    </form>
 
-  <script>
-    // ป้องกัน submit ถ้ายังไม่ได้เลือก OA
-    document.addEventListener('DOMContentLoaded', function() {
-      const oaSelect = document.getElementById('oa_id');
-      const submitBtn = document.getElementById('submit-btn');
-      function toggleBtn() {
-        if (!oaSelect.value) {
-          submitBtn.disabled = true;
-        } else {
-          submitBtn.disabled = false;
-        }
+    <a href="{{ url_for('add_oa') }}" class="oa-login-add">
+      <svg width="20" height="20" viewBox="0 0 20 20" style="vertical-align:middle" fill="none">
+        <circle cx="10" cy="10" r="10" fill="#fff" fill-opacity="0.15"/>
+        <path d="M10 6V14M6 10H14" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <span style="vertical-align:middle;">เพิ่มบัญชี OA ใหม่</span>
+    </a>
+  </div>
+</div>
+<script>
+  // ป้องกัน submit ถ้ายังไม่ได้เลือก OA
+  document.addEventListener('DOMContentLoaded', function() {
+    const oaSelect = document.getElementById('oa_id');
+    const submitBtn = document.getElementById('submit-btn');
+    function toggleBtn() {
+      if (!oaSelect.value) {
+        submitBtn.disabled = true;
+      } else {
+        submitBtn.disabled = false;
       }
-      oaSelect && oaSelect.addEventListener('change', toggleBtn);
-      toggleBtn();
-    });
-  </script>
+    }
+    oaSelect && oaSelect.addEventListener('change', toggleBtn);
+    toggleBtn();
+  });
+</script>
 {% endblock %}

@@ -1,8 +1,188 @@
 {% extends "base.html" %}
 {% block content %}
-    <h2>ส่งริชเมสเสจ</h2>
+<style>
+/* กล่องหลัก */
+.send-flex-container {
+    background: #f6fff6;
+    border-radius: 18px;
+    box-shadow: 0 4px 24px rgba(46,125,50,0.07), 0 0 0 1px #e7fbe6;
+    padding: 24px 24px 4px 24px;
+    max-width: 2000px;
+    margin: 32px 0 0 -280px !important;
+}
+
+.send-flex-container h2 {
+    font-weight: 700;
+    color: #097c22;
+    margin-bottom: 18px;
+    font-size: 2em;
+    letter-spacing: 0.5px;
+}
+
+.send-flex-container label {
+    font-weight: 500;
+    color: #17723c;
+    margin-bottom: 7px;
+    display: block;
+    font-size: 1.07em;
+}
+
+.send-flex-container select,
+.send-flex-container input[type="datetime-local"] {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #d7efde;
+    background: #fff;
+    font-size: 1em;
+    margin-bottom: 18px;
+    box-sizing: border-box;
+    transition: border 0.18s;
+}
+.send-flex-container select:focus,
+.send-flex-container input[type="datetime-local"]:focus {
+    border: 1.5px solid #22bb66;
+    outline: none;
+}
+
+#flex_preview {
+    margin: 14px 0 22px 0 !important;
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 2px 18px #e3f6e0;
+    padding: 18px 10px;
+    min-height: 200px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    max-width: 100%;
+}
+#flex_preview img {
+    border-radius: 12px;
+    box-shadow: 0 2px 18px #e7fbe6;
+    margin: 0 auto;
+    display: block;
+    max-width: 300px;
+    max-height: 200px;
+}
+
+.send-flex-container .btn {
+    background: #008f36;
+    color: #fff;
+    border: none;
+    border-radius: 9px;
+    padding: 10px 26px;
+    font-size: 1.1em;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 8px #e8fce2;
+    transition: background 0.18s, color 0.18s;
+}
+.send-flex-container .btn:hover,
+.send-flex-container .btn:focus {
+    background: #0dbe5a;
+    color: #fff;
+}
+.send-flex-container .btn-outline {
+    background: #fff !important;
+    color: #008f36 !important;
+    border: 2px solid #008f36;
+    box-shadow: none;
+}
+.send-flex-container .btn-outline:hover {
+    background: #e7fbe6 !important;
+    color: #0dbe5a !important;
+    border: 2px solid #0dbe5a;
+}
+
+#send-flex-form {
+    margin-top: 16px;
+}
+
+@media (max-width: 850px) {
+    .send-flex-container {
+        padding: 6vw 2vw 6vw 2vw;
+        max-width: 98vw;
+    }
+    #flex_preview img {
+        max-width: 99vw;
+        max-height: 160px;
+    }
+}
+@media (max-width: 600px) {
+    .send-flex-container {
+        border-radius: 9px;
+        padding: 4vw 1vw 4vw 1vw;
+    }
+    #flex_preview {
+        padding: 10px 2px;
+    }
+}
+input[type="radio"] {
+    accent-color: #008f36;
+    margin-right: 3px;
+}
+
+/* Progress Modal */
+.progress-modal {
+    position: fixed;
+    z-index: 10000;
+    left: 0; top: 0; right: 0; bottom: 0;
+    background: rgba(26,54,30,0.13);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.progress-modal-content {
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 2px 20px #e7fbe6;
+    padding: 28px 32px 22px 32px;
+    min-width: 340px;
+    max-width: 98vw;
+    text-align: center;
+}
+.progress-title {
+    font-weight: 600;
+    color: #007a4d;
+    font-size: 1.15em;
+}
+.progress-bar-container {
+    margin: 18px 0 9px 0;
+    height: 18px;
+    width: 100%;
+    border-radius: 7px;
+    background: #f2ffed;
+    box-shadow: 0 1px 4px #e7fbe6;
+    overflow: hidden;
+}
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #25a154, #7ee885);
+    border-radius: 7px;
+    width: 0%;
+    transition: width 0.4s;
+}
+.btn-danger {
+    background: #f4cccc !important;
+    color: #d52b1e !important;
+    border-radius: 8px;
+    margin-top: 16px;
+    font-weight: 600;
+    padding: 9px 26px;
+    border: none;
+}
+.btn-danger:hover {
+    background: #e44f43 !important;
+    color: #fff !important;
+}
+</style>
+<div class="send-flex-container">
+    <h2 style="font-weight: 700; color: #097c22; margin-bottom: 36px; text-align: center;">
+        ส่งริชเมสเสจ
+    </h2>
     <form method="post" id="send-flex-form">
-        <label>เลือกริชเมสเสจที่บันทึกไว้:</label>
+        <label >เลือกริชเมสเสจที่บันทึกไว้:</label>
         <select id="template_select" name="selected_template" onchange="onSelectTemplate(this)">
             <option value="">-- เลือกริชเมสเสจ --</option>
             {% for temp in templates %}
@@ -20,6 +200,18 @@
                 <em>เลือกริชเมสเสจเพื่อดูตัวอย่าง...</em>
             </div>
         </div>
+
+        <label>เวลาส่ง:</label>
+        <div style="display: flex; gap: 14px; align-items: center; margin-bottom: 16px;">
+            <label>
+                <input type="radio" name="send_time_option" value="now" checked> ส่งตอนนี้
+            </label>
+            <label>
+                <input type="radio" name="send_time_option" value="schedule"> ตั้งเวลาส่ง
+            </label>
+            <input type="datetime-local" name="scheduled_time" id="scheduled_time" style="display:none;">
+        </div>
+
         <br>
         <label>ส่งถึง:</label>
         <select name="target" required>
@@ -58,8 +250,9 @@
             <button id="cancelSendBtn" class="btn btn-danger">⏹️ หยุดการส่ง</button>
         </div>
     </div>
-
-  <script>
+{{ super() }}
+</div>
+<script>
     // @ts-nocheck
     window.templates = {{ templates|tojson|safe }};
     const templateSelect = document.getElementById('template_select');
@@ -160,5 +353,10 @@
             `ส่งแล้ว ${current} / ${total} คน${fail ? ", ล้มเหลว " + fail + " คน" : ""}`;
         document.getElementById('progressCount').innerText = `(${percent}% เสร็จสิ้น)`;
     }
+    document.querySelectorAll('input[name="send_time_option"]').forEach(radio => {
+        radio.onchange = function() {
+            document.getElementById('scheduled_time').style.display = (this.value === 'schedule') ? '' : 'none';
+        }
+    });
 </script>
 {% endblock %}

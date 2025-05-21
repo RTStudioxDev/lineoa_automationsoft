@@ -1,5 +1,94 @@
 {% extends "base.html" %}
 {% block content %}
+<style>
+.topup-center { display: flex; justify-content: center; align-items: center; min-height: 85vh; }
+.topup-card {
+    background: #f6fff6;
+    border-radius: 20px;
+    box-shadow: 0 4px 24px rgba(46,125,50,0.07), 0 0 0 1px #e7fbe6;
+    padding: 24px 24px 4px 24px;
+    max-width: 1000px;
+    margin: 32px 0 0 -280px !important;
+}
+.topup-title { 
+    font-size: 1.6em; 
+    font-weight: 600; 
+    color: #07ad5a; 
+    margin-bottom: 18px; 
+    text-align:center;}
+.topup-form label { 
+    display: block; 
+    margin-bottom: 6px; 
+    font-weight: 500; 
+    color: #085c23;}
+.topup-input {
+    width: 100%; 
+    padding: 10px;
+    border: 1px solid #cce6d3; 
+    border-radius: 8px;
+    margin-bottom: 20px; 
+    font-size: 1.09em; 
+    background: #f8fffa;
+}
+.topup-input-file { 
+    margin-bottom: 12px;}
+.topup-slip-img {
+    width: 120px; 
+    border-radius: 10px; 
+    margin-bottom: 18px; 
+    border:1px solid #eee; 
+    box-shadow: 0 1px 12px #caf7e4;
+}
+.topup-btn {
+    width: 100%; 
+    background: linear-gradient(90deg, #09cf6d 70%, #08ad58); 
+    color: #fff; 
+    border: none;
+    padding: 13px 0; 
+    border-radius: 9px; 
+    font-size: 1.09em; 
+    font-weight: 600; 
+    letter-spacing: 1px; 
+    cursor:pointer; 
+    transition:background .2s;
+}
+.topup-btn:hover { 
+    background: linear-gradient(90deg, #1ee89a 60%, #0ec073);}
+.topup-hint { 
+    font-size:0.99em; 
+    color:#5e7a67; 
+    margin-top:20px; }
+@media (max-width: 1050px) {
+  .topup-card {
+    max-width: 96vw;
+    padding: 4vw 2vw 2vw 2vw;
+    margin: 32px 0 0 0 !important;
+  }
+}
+@media (max-width: 700px) {
+  .topup-center { min-height: 70vh; }
+  .topup-card {
+    padding: 4vw 3vw 3vw 3vw;
+    border-radius: 13px;
+    max-width: 99vw;
+    margin: 16px 0 0 0 !important;
+  }
+  .topup-title { font-size: 1.2em; }
+  .topup-slip-img { width: 90px; margin-bottom: 13px; }
+  .topup-btn { padding: 10px 0; font-size: 1em;}
+}
+@media (max-width: 480px) {
+  .topup-card {
+    padding: 3vw 1vw 2vw 1vw;
+    border-radius: 8px;
+    max-width: 100vw;
+    margin: 8px 0 0 0 !important;
+  }
+  .topup-title { font-size: 1em; }
+  .topup-input, .topup-btn { font-size: 0.99em; }
+  .topup-slip-img { width: 70px; }
+}
+</style>
 <div class="topup-center">
     <div class="topup-card">
         <div class="topup-title">💸 เติมเครดิต (แนบสลิปโอนเงิน)</div>
@@ -19,30 +108,8 @@
             📢 <b>หมายเหตุ:</b> หลังส่งคำขอ รอแอดมินตรวจสอบและอนุมัติในระบบก่อนเครดิตจะเข้าบัญชี
         </div>
     </div>
+    {{ super() }}
 </div>
-<style>
-.topup-center { display: flex; justify-content: center; align-items: center; min-height: 85vh; }
-.topup-card {
-    background: #fff; border-radius: 18px; box-shadow: 0 6px 36px #d4ffe7;
-    padding: 32px 34px 26px 34px; min-width: 330px; max-width: 380px;
-}
-.topup-title { font-size: 1.6em; font-weight: 600; color: #07ad5a; margin-bottom: 18px; text-align:center;}
-.topup-form label { display: block; margin-bottom: 6px; font-weight: 500; color: #085c23;}
-.topup-input {
-    width: 100%; padding: 10px; border: 1px solid #cce6d3; border-radius: 8px;
-    margin-bottom: 20px; font-size: 1.09em; background: #f8fffa;
-}
-.topup-input-file { margin-bottom: 12px;}
-.topup-slip-img {
-    width: 120px; border-radius: 10px; margin-bottom: 18px; border:1px solid #eee; box-shadow: 0 1px 12px #caf7e4;
-}
-.topup-btn {
-    width: 100%; background: linear-gradient(90deg, #09cf6d 70%, #08ad58); color: #fff; border: none;
-    padding: 13px 0; border-radius: 9px; font-size: 1.09em; font-weight: 600; letter-spacing: 1px; cursor:pointer; transition:background .2s;
-}
-.topup-btn:hover { background: linear-gradient(90deg, #1ee89a 60%, #0ec073);}
-.topup-hint { font-size:0.99em; color:#5e7a67; margin-top:20px; }
-</style>
 <script>
 function previewSlip(input) {
     const preview = document.getElementById('slip-preview');

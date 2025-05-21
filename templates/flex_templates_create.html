@@ -1,62 +1,205 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>สร้างริชเมสเสจ</h2>
-<form id="flex-form" method="POST" enctype="multipart/form-data" action="{{ url_for('flex_templates_create') }}">
-    <div class="mb-3">
-        <label for="template_name" style="font-weight:bold;">ชื่อไอเทม</label>
-        <input type="text" name="template_name" id="template_name" class="form-control" maxlength="100" required>
-        <input type="hidden" id="alt_text" name="alt_text">
-        <small class="form-text text-muted">ชื่อจะถูกแสดงในรายการแจ้งเตือนแบบทุกรายการและรายการชื่อเล่น</small>
-    </div>
-    
-    <!-- อัปโหลดรูป -->
-    <div class="upload-area">
-        <label class="upload-preview" id="drop-zone" style="cursor:pointer;">
-            <span id="preview-placeholder">เลือกภาพ<br>หรือวางไฟล์ที่นี่</span>
-            <img id="preview-img" style="display:none;" />
-            <input type="file" id="input-image" name="image" accept="image/*" class="d-none">
-        </label>
-        <div>
-            <button type="button" class="upload-btn" id="select-btn">เลือก</button>
-            <div style="margin:6px 0 0 0;font-size:0.98rem;">
-                <span style="color:#333;">รูป</span>
-            </div>
-            <small>ไฟล์ PNG, JPG ขนาดไม่เกิน 5MB</small>
-            <input type="hidden" id="uploaded-url" name="uploaded_url">
-            <input type="hidden" id="aspect-ratio" name="aspect_ratio">
+<style>
+.rt-flex-create-container {
+    background: #f6fff6;
+    border-radius: 20px;
+    box-shadow: 0 4px 24px rgba(46,125,50,0.07), 0 0 0 1px #e7fbe6;
+    padding: 24px 24px 4px 24px;
+    max-width: 2000px;
+    margin: 32px 0 0 -280px !important;
+}
+.rt-flex-create-title {
+    font-weight: 700;
+    color: #097c22;
+    text-align: center;
+    margin-bottom: 30px;
+    font-size: 2em;
+    letter-spacing: 0.5px;
+}
+.rt-flex-create-label {
+    font-weight: 500;
+    color: #145f30;
+    margin-bottom: 6px;
+    display: block;
+    font-size: 1.09em;
+}
+.rt-flex-create-input, .rt-flex-create-select, .rt-flex-create-textarea {
+    width: 100%;
+    padding: 12px 13px;
+    border-radius: 9px;
+    border: 1.5px solid #d7efde;
+    background: #fff;
+    font-size: 1.08em;
+    margin-bottom: 19px;
+    box-sizing: border-box;
+    transition: border 0.18s;
+    font-family: inherit;
+}
+.rt-flex-create-input:focus, .rt-flex-create-select:focus, .rt-flex-create-textarea:focus {
+    border: 1.5px solid #22bb66;
+    outline: none;
+}
+.rt-flex-create-upload-area {
+    margin-bottom: 16px;
+    display: flex;
+    align-items: flex-end;
+    gap: 20px;
+}
+.rt-flex-create-upload-preview {
+    cursor: pointer;
+    width: 140px;
+    min-height: 100px;
+    background: #f5f5f5;
+    border-radius: 9px;
+    border: 1.5px dashed #b2e3c5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    flex-direction: column;
+    overflow: hidden;
+    text-align: center;
+}
+.rt-flex-create-upload-preview img {
+    width: 100%;
+    max-width: 140px;
+    max-height: 120px;
+    border-radius: 9px;
+    box-shadow: 0 2px 12px #bbe9c5;
+    display: block;
+}
+.rt-flex-create-upload-placeholder {
+    color: #a3a3a3;
+    font-size: 1.03em;
+    font-weight: 400;
+    padding: 10px 0;
+}
+.rt-flex-create-upload-btn {
+    background: linear-gradient(90deg,#22c55e 70%, #16a34a 100%);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 11px 22px;
+    font-size: 1em;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 8px #e7fbe8;
+    margin-bottom: 4px;
+    transition: background 0.14s, box-shadow 0.14s;
+}
+.rt-flex-create-upload-btn:hover,
+.rt-flex-create-upload-btn:focus {
+    background: linear-gradient(90deg,#16a34a 0%, #22c55e 100%);
+}
+.rt-flex-create-form-text {
+    font-size: 0.98em;
+    color: #75846a;
+    margin-top: 3px;
+}
+.rt-flex-create-btn {
+    width: 100%;
+    display: block;
+    background: #18be62;
+    color: #fff;
+    border: none;
+    border-radius: 11px;
+    padding: 13px 0;
+    font-size: 1.18em;
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin-top: 14px;
+    cursor: pointer;
+    transition: background 0.16s;
+    box-shadow: 0 3px 13px #b5ebd6;
+}
+.rt-flex-create-btn:hover, .rt-flex-create-btn:focus {
+    background: #1ee47d;
+}
+.rt-flex-create-counter {
+    color: #579f4a;
+    font-size: 0.97em;
+    float: right;
+    margin-top: 1px;
+    margin-bottom: 12px;
+}
+@media (max-width: 700px) {
+    .rt-flex-create-container {
+        padding: 6vw 2vw 6vw 2vw;
+        max-width: 99vw;
+        border-radius: 10px;
+    }
+    .rt-flex-create-title { font-size: 1.24em;}
+    .rt-flex-create-upload-area {
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+    }
+    .rt-flex-create-upload-preview { max-width: 100%; }
+}
+@media (max-width: 480px) {
+    .rt-flex-create-container { padding: 4vw 0.7vw 6vw 0.7vw; }
+    .rt-flex-create-title { font-size: 1em;}
+}
+</style>
+<div class="rt-flex-create-container">
+    <div class="rt-flex-create-title">สร้างริชเมสเสจ</div>
+    <form id="flex-form" method="POST" enctype="multipart/form-data" action="{{ url_for('flex_templates_create') }}">
+        <div class="mb-3">
+            <label for="template_name" class="rt-flex-create-label">ชื่อไอเทม</label>
+            <input type="text" name="template_name" id="template_name" class="rt-flex-create-input" maxlength="100" required>
+            <input type="hidden" id="alt_text" name="alt_text">
+            <small class="rt-flex-create-form-text">ชื่อจะแจ้งเตือนเวลาส่งตามที่เรากำหนด</small>
         </div>
-    </div>
 
-    <!-- ประเภท -->
-    <div class="mb-3">
-        <label for="type-select" style="font-weight:bold;">ประเภท</label>
-        <select id="type-select" class="form-select" name="flex_type" required>
-            <option value="">เลือก</option>
-            <option value="link">ลิงก์</option>
-            <option value="message">ข้อความ</option>
-        </select>
-    </div>
-    
-    <!-- ลิงก์ -->
-    <div id="input-link" style="display:none;" class="mb-3">
-        <label for="input-url" style="font-weight:bold;">ใส่ลิงก์</label>
-        <input type="text" id="input-url" class="form-control" placeholder="ใส่ลิงก์" maxlength="200">
-        <small class="form-text text-muted">ใส่ลิงก์เพื่อแสดงบนป้ายแอ็กชัน เช่น เปิดลิงก์, ดูเว็บไซต์</small>
-        <textarea class="form-control mt-2" rows="2" maxlength="100" placeholder="ใส่ข้อความเพื่อแสดงบนป้ายแอ็กชัน เช่น เปิดลิงก์, ดูเว็บไซต์" id="input-link-label"></textarea>
-        <div class="text-end"><span id="link-label-count">0</span>/100</div>
-    </div>
-    <!-- ข้อความ -->
-    <div id="input-message" style="display:none;" class="mb-3">
-        <label for="input-text" style="font-weight:bold;">ใส่ข้อความ</label>
-        <textarea class="form-control" rows="2" maxlength="50" placeholder="ใส่ข้อความ" id="input-text"></textarea>
-        <small class="form-text text-muted">ข้อความนี้จะถูกส่งไปยังห้องแชทโดยอัตโนมัติเมื่อผู้ใช้แตะป้ายนี้</small>
-        <div class="text-end"><span id="msg-count">0</span>/50</div>
-    </div>
-    
-    <input type="hidden" id="flex_json" name="flex_json">
-    <button type="submit" class="btn btn-success btn-lg w-25" style="margin:auto;display:block;">บันทึก</button>
-</form>
+        <!-- อัปโหลดรูป -->
+        <div class="rt-flex-create-upload-area">
+            <label class="rt-flex-create-upload-preview" id="drop-zone">
+                <span class="rt-flex-create-upload-placeholder" id="preview-placeholder">เลือกภาพ<br>หรือวางไฟล์ที่นี่</span>
+                <img id="preview-img" style="display:none;" />
+                <input type="file" id="input-image" name="image" accept="image/*" style="display:none;">
+            </label>
+            <div>
+                <button type="button" class="rt-flex-create-upload-btn" id="select-btn">เลือก</button>
+                <div style="margin:6px 0 0 0;font-size:0.98rem;">
+                    <span style="color:#333;">รูป</span>
+                </div>
+                <small class="rt-flex-create-form-text">ไฟล์ PNG, JPG ขนาดไม่เกิน 5MB</small>
+                <input type="hidden" id="uploaded-url" name="uploaded_url">
+                <input type="hidden" id="aspect-ratio" name="aspect_ratio">
+            </div>
+        </div>
 
+        <!-- ประเภท -->
+        <div class="mb-3">
+            <label for="type-select" class="rt-flex-create-label">ประเภท</label>
+            <select id="type-select" class="rt-flex-create-select" name="flex_type" required>
+                <option value="">เลือก</option>
+                <option value="link">ลิงก์</option>
+                <option value="message">ข้อความ</option>
+            </select>
+        </div>
+
+        <!-- ลิงก์ -->
+        <div id="input-link" style="display:none;" class="mb-3">
+            <label for="input-url" class="rt-flex-create-label">ใส่ลิงก์</label>
+            <input type="text" id="input-url" class="rt-flex-create-input" placeholder="ใส่ลิงก์" maxlength="200">
+            <small class="rt-flex-create-form-text">ใส่ลิงก์เพื่อแสดงบนป้ายแอ็กชัน เช่น เปิดลิงก์, ดูเว็บไซต์</small>
+            <textarea class="rt-flex-create-textarea" rows="2" maxlength="100" placeholder="ใส่ข้อความเพื่อแสดงบนป้ายแอ็กชัน เช่น เปิดลิงก์, ดูเว็บไซต์" id="input-link-label"></textarea>
+            <div class="rt-flex-create-counter"><span id="link-label-count">0</span>/100</div>
+        </div>
+        <!-- ข้อความ -->
+        <div id="input-message" style="display:none;" class="mb-3">
+            <label for="input-text" class="rt-flex-create-label">ใส่ข้อความ</label>
+            <textarea class="rt-flex-create-textarea" rows="2" maxlength="50" placeholder="ใส่ข้อความ" id="input-text"></textarea>
+            <small class="rt-flex-create-form-text">ข้อความนี้จะถูกส่งไปยังห้องแชทโดยอัตโนมัติเมื่อผู้ใช้แตะป้ายนี้</small>
+            <div class="rt-flex-create-counter"><span id="msg-count">0</span>/50</div>
+        </div>
+
+        <input type="hidden" id="flex_json" name="flex_json">
+        <button type="submit" class="rt-flex-create-btn">บันทึก</button>
+    </form>
+</div>
 <script>
 document.getElementById('template_name').addEventListener('input', function() {
 document.getElementById('alt_text').value = this.value;

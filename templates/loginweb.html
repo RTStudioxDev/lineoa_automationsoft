@@ -1,14 +1,96 @@
 {% extends "base.html" %}
 {% block content %}
-  <h2>เข้าสู่ระบบ</h2>
+<style>
+.rt-login-container {
+    background: #f6fff6;
+    border-radius: 20px;
+    box-shadow: 0 4px 24px rgba(46,125,50,0.07), 0 0 0 1px #e7fbe6;
+    padding: 24px 24px 4px 24px;
+    max-width: 2000px;
+    margin: 32px 0 0 -280px !important;
+}
+.rt-login-title {
+    font-weight: 700;
+    color: #097c22;
+    text-align: center;
+    font-size: 2em;
+    margin-bottom: 32px;
+    letter-spacing: 0.5px;
+}
+.rt-login-label {
+    font-weight: 500;
+    color: #145f30;
+    margin-bottom: 7px;
+    display: block;
+    font-size: 1.09em;
+}
+.rt-login-input {
+    width: 100%;
+    padding: 12px 13px;
+    border-radius: 8px;
+    border: 1.5px solid #d7efde;
+    background: #fff;
+    font-size: 1.08em;
+    margin-bottom: 21px;
+    box-sizing: border-box;
+    transition: border 0.18s;
+    font-family: inherit;
+}
+.rt-login-input:focus {
+    border: 1.5px solid #22bb66;
+    outline: none;
+}
+.rt-login-btn {
+    width: 100%;
+    background: linear-gradient(90deg,#22c55e 70%, #16a34a 100%);
+    color: #fff;
+    border: none;
+    border-radius: 11px;
+    padding: 13px 0;
+    font-size: 1.18em;
+    font-weight: 700;
+    letter-spacing: 1px;
+    cursor: pointer;
+    box-shadow: 0 3px 13px #b5ebd6;
+    transition: background 0.17s;
+}
+.rt-login-btn:hover, .rt-login-btn:focus {
+    background: #1ee47d;
+}
+.flashes {
+    margin: 20px 0 0 0;
+    padding: 0;
+    list-style: none;
+    text-align: center;
+}
+.flashes li {
+    color: #de3832;
+    background: #ffebeb;
+    border-radius: 8px;
+    padding: 10px 0;
+    margin-bottom: 7px;
+    font-weight: 600;
+    font-size: 1.05em;
+    box-shadow: 0 2px 8px #fae1e2;
+}
+@media (max-width: 700px) {
+    .rt-login-container { padding: 7vw 4vw 7vw 4vw; max-width: 99vw; border-radius: 11px;}
+    .rt-login-title { font-size: 1.25em;}
+}
+@media (max-width: 480px) {
+    .rt-login-container { padding: 4vw 1vw 4vw 1vw; }
+    .rt-login-title { font-size: 1em;}
+}
+</style>
+
+<div class="rt-login-container">
+  <div class="rt-login-title">เข้าสู่ระบบ</div>
   <form method="post" action="{{ url_for('login_user') }}">
-      <label>Username:</label>
-      <input type="text" name="username" required>
-      <br>
-      <label>Password:</label>
-      <input type="password" name="password" required>
-      <br>
-      <button type="submit">เข้าสู่ระบบ</button>
+      <label class="rt-login-label">Username:</label>
+      <input type="text" name="username" class="rt-login-input" required>
+      <label class="rt-login-label">Password:</label>
+      <input type="password" name="password" class="rt-login-input" required>
+      <button type="submit" class="rt-login-btn">เข้าสู่ระบบ</button>
   </form>
   {% with messages = get_flashed_messages() %}
     {% if messages %}
@@ -19,4 +101,5 @@
       </ul>
     {% endif %}
   {% endwith %}
+</div>
 {% endblock %}

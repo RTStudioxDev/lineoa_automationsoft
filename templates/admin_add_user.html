@@ -1,23 +1,146 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>เพิ่มผู้ใช้ใหม่</h2>
-<form method="post">
-    <label>Username:</label>
-    <input type="text" name="username" required>
-    <br>
-    <label>Password:</label>
-    <input type="password" name="password" required>
-    <br>
-    <label>ยศ:</label>
-    <select name="role" required>
-        <option value="user">User</option>
-        <option value="admin">Admin</option>
-    </select>
-    <br>
-    <label>วันหมดอายุ (จำนวนวัน):</label>
-    <input type="number" name="expire_days" min="1" required>
-    <br>
-    <button type="submit" class="btn">สร้างยูสเซอร์</button>
-    <a href="{{ url_for('admin_panel') }}" class="btn btn-outline" style="margin-left:14px;">ย้อนกลับ</a>
-</form>
+<style>
+.useradd-center {
+    min-height: 70vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.useradd-card {
+    background: #f6fff6;
+    border-radius: 20px;
+    box-shadow: 0 4px 24px rgba(46,125,50,0.07), 0 0 0 1px #e7fbe6;
+    padding: 40px 42px 32px 42px;
+    width: 200%;
+    max-width: 5000px;
+    margin: 32px 0 0 -280px !important;
+}
+.useradd-title {
+    font-weight: 700;
+    color: #097c22;
+    text-align: center;
+    font-size: 1.5em;
+    margin-bottom: 22px;
+    letter-spacing: 0.3px;
+}
+.useradd-form label {
+    font-weight: 500;
+    color: #146636;
+    margin-bottom: 6px;
+    display: block;
+    font-size: 1.06em;
+}
+.useradd-form input[type="text"],
+.useradd-form input[type="password"],
+.useradd-form input[type="number"],
+.useradd-form select {
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1.5px solid #d7efde;
+    background: #fff;
+    font-size: 1.08em;
+    margin-bottom: 20px;
+    box-sizing: border-box;
+    transition: border 0.17s;
+}
+.useradd-form input:focus, .useradd-form select:focus {
+    border: 1.5px solid #22bb66;
+    outline: none;
+}
+.useradd-form .btn, .useradd-form .btn-outline {
+    padding: 10px 0;
+    width: 100%;
+    font-size: 1.11em;
+    font-weight: 600;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    box-shadow: 0 2px 8px #e7fbe2;
+    transition: background 0.18s, color 0.18s;
+    letter-spacing: 1px;
+}
+.useradd-form .btn {
+    background: #008f36;
+    color: #fff;
+    border: none;
+}
+.useradd-form .btn:hover, .useradd-form .btn:focus {
+    background: #0dbe5a;
+    color: #fff;
+}
+.useradd-form .btn-outline {
+    background: #fff;
+    color: #008f36;
+    border: 2px solid #008f36;
+    margin-left: 0;
+}
+.useradd-form .btn-outline:hover {
+    background: #e7fbe6;
+}
+.btn-outline {
+    display: inline-block;
+    background: #fff;
+    text-align: center;
+    color: #008f36;
+    border: 2px solid #008f36;
+    border-radius: 10px;
+    font-size: 1.1em;
+    font-weight: 600;
+    padding: 12px 26px;
+    box-shadow: 0 3px 10px #d2ffea0e;
+    transition: background 0.16s, color 0.16s, box-shadow 0.16s;
+    margin-top: 28px;
+    margin-left: 28px;
+    margin-bottom: 14px;
+}
+.btn-outline:hover,
+.btn-outline:focus {
+    background: #e8fff2;
+    color: #045d28;
+    box-shadow: 0 3px 16px #b8eedb6e;
+    text-decoration: none;
+}
+@media (max-width: 600px) {
+    .btn-outline {
+        font-size: 1em;
+        padding: 9px 16px;
+        margin-left: 10px;
+        margin-top: 16px;
+    }
+}
+@media (max-width: 600px) {
+    .useradd-card {
+        padding: 7vw 4vw 7vw 4vw;
+        border-radius: 12px;
+        max-width: 98vw;
+    }
+    .useradd-title { font-size: 1.13em;}
+    .useradd-form label, .useradd-form input, .useradd-form select, .useradd-form .btn { font-size: 1em;}
+}
+</style>
+<div class="useradd-center">
+  <div class="useradd-card">
+    <div class="useradd-title">เพิ่มผู้ใช้ใหม่</div>
+    <form method="post" class="useradd-form">
+        <label>Username:</label>
+        <input type="text" name="username" required>
+
+        <label>Password:</label>
+        <input type="password" name="password" required>
+
+        <label>ยศ:</label>
+        <select name="role" required>
+            <option value="user">User</option>
+            <option value="admin">Admin</option>
+        </select>
+
+        <label>วันหมดอายุ (จำนวนวัน):</label>
+        <input type="number" name="expire_days" min="1" required>
+
+        <button type="submit" class="btn">สร้างยูสเซอร์</button>
+        <a href="{{ url_for('admin_panel') }}" class="btn btn-outline">ย้อนกลับ</a>
+    </form>
+  </div>
+</div>
 {% endblock %}

@@ -1,40 +1,190 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="dashboard-center">
-    <div class="dashboard-card" style="max-width:420px;">
-        <div style="font-size:2em; margin-bottom:8px;">
+<style>
+.rt-renew-center {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 80vh;
+}
+.rt-renew-card {
+    background: #f6fff6;
+    border-radius: 22px;
+    box-shadow: 0 4px 24px rgba(46,125,50,0.09), 0 0 0 1.5px #e7fbe6;
+    padding: 38px 38px 24px 38px;
+    max-width: 520px;
+    width: 100%;
+    margin-top: 42px;
+}
+.rt-renew-title {
+    font-size: 2em;
+    color: #0c8e2d;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 14px;
+}
+.rt-renew-status {
+    font-size: 1.09em;
+    margin-bottom: 15px;
+    text-align: center;
+}
+.rt-renew-status b { color: #118a2c; }
+.rt-renew-info {
+    margin-bottom: 10px;
+    font-size: 1.07em;
+    text-align: center;
+}
+.rt-renew-form label {
+    font-weight: 500;
+    color: #085c23;
+    margin-bottom: 8px;
+    display: block;
+}
+.rt-renew-packages {
+    margin: 20px 0 0 0;
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+.rt-renew-btn {
+    flex: 1 1 48%;
+    background: #e6f8ea;
+    border: 2px solid #19b167;
+    border-radius: 13px;
+    padding: 22px 18px;
+    font-size: 1.13em;
+    font-weight: 700;
+    color: #067e30;
+    cursor: pointer;
+    transition: box-shadow 0.16s, border 0.16s, background 0.15s;
+    box-shadow: 0 1.5px 10px #e2ffec;
+    position: relative;
+    margin-bottom: 10px;
+}
+.rt-renew-btn:hover, .rt-renew-btn:focus {
+    border: 2px solid #1ed46c;
+    background: #cbfae2;
+}
+.rt-renew-btn-year {
+    background: #f7f7f7;
+    border: 2px solid #e1be19;
+    color: #bd9709;
+    position: relative;
+}
+.rt-renew-btn-year:hover, .rt-renew-btn-year:focus {
+    background: #fffde3;
+    border: 2px solid #ffe23e;
+}
+.rt-renew-popular {
+    position: absolute;
+    top: -15px;
+    right: -12px;
+    background: #ffe23e;
+    color: #b78905;
+    padding: 3.5px 14px;
+    border-radius: 12px;
+    font-size: 0.93em;
+    font-weight: 700;
+    box-shadow: 0 1px 8px #ffe23e55;
+    z-index: 3;
+    border: 2px solid #fff;
+    letter-spacing: 0.5px;
+}
+.rt-renew-modal-overlay {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.33);
+    align-items: center; justify-content: center;
+}
+.rt-renew-modal {
+    background: #fff;
+    border-radius: 16px;
+    max-width: 340px;
+    margin: 10vh auto 0 auto;
+    padding: 26px 18px 20px 18px;
+    box-shadow: 0 6px 40px #0001;
+    text-align: center;
+}
+.rt-renew-modal-title {
+    font-size: 1.19em;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: #19693c;
+}
+.rt-renew-modal-detail {
+    margin-bottom: 19px;
+    color: #111;
+    font-size: 1.07em;
+}
+.rt-renew-modal-btns {
+    display: flex;
+    gap: 16px;
+}
+.rt-renew-modal-btn {
+    flex: 1;
+    padding: 10px 0;
+    font-size: 1em;
+    border-radius: 8px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    background: #e6e6e6;
+    color: #444;
+    transition: background 0.17s, color 0.17s;
+}
+.rt-renew-modal-btn-confirm {
+    background: linear-gradient(90deg,#22c55e 70%, #16a34a 100%);
+    color: #fff;
+}
+.rt-renew-modal-btn-confirm:hover { background: #10be5a; }
+.rt-renew-modal-btn-cancel:hover { background: #ddd; }
+
+@media (max-width: 650px) {
+    .rt-renew-card { max-width: 99vw; padding: 5vw 2vw 3vw 2vw; border-radius: 10px;}
+    .rt-renew-title { font-size: 1.25em;}
+    .rt-renew-packages { flex-direction: column; gap: 10px;}
+    .rt-renew-btn, .rt-renew-btn-year { font-size: 1.05em; padding: 14px 10px;}
+}
+@media (max-width: 420px) {
+    .rt-renew-card { padding: 3vw 1vw 2vw 1vw;}
+    .rt-renew-title { font-size: 1em;}
+}
+</style>
+
+<div class="rt-renew-center">
+    <div class="rt-renew-card">
+        <div class="rt-renew-title">
             <span style="vertical-align:middle;">🔄</span> ต่ออายุสมาชิก
         </div>
-        <div style="margin-bottom:16px; font-size:1.09em;">
+        <div class="rt-renew-status">
             <b>วันหมดอายุปัจจุบัน:</b>
-            <span style="color:#009f1e;">{{ expire_date }}</span>
+            <span>{{ expire_date }}</span>
         </div>
-        <div style="margin-bottom:8px;">
+        <div class="rt-renew-info">
             <b>วันคงเหลือ:</b> {{ left_days }} วัน<br>
-            <b>เครดิตคงเหลือ:</b> <span style="color:#009f1e;">{{ credit }}</span> บาท
+            <b>เครดิตคงเหลือ:</b> <span>{{ credit }}</span> บาท
         </div>
-
-        <form method="post" class="renew-form" id="renewForm" style="margin-bottom:24px;">
+        <form method="post" class="rt-renew-form" id="renewForm" style="margin-bottom:24px;">
             <input type="hidden" name="package" id="renewPackage">
             <label style="font-weight:500;">เลือกแพคเกจต่ออายุ:</label>
-            <div class="renew-packages" style="margin:20px 0; display:flex; gap:16px;">
+            <div class="rt-renew-packages">
                 <!-- 30 วัน -->
                 <button type="button"
                         onclick="confirmRenew('30')"
-                        class="renew-btn"
-                        style="background:#e6f8ea;border:2px solid #19b167; border-radius:10px; padding:22px 24px; font-size:1.12em; font-weight:600; color:#067e30; flex:1; cursor:pointer;">
+                        class="rt-renew-btn">
                     ต่ออายุ <b>30 วัน</b><br>
-                    <span style="font-size:0.95em; color:#0d950e; font-weight:500;">(1,000 เครดิต)</span>
+                    <span style="font-size:0.97em; color:#0d950e; font-weight:500;">(1,000 เครดิต)</span>
                 </button>
                 <!-- 1 ปี -->
                 <button type="button"
                         onclick="confirmRenew('365')"
-                        class="renew-btn"
-                        style="background:#f7f7f7;border:2px solid #e1be19; border-radius:10px; padding:22px 24px; font-size:1.12em; font-weight:600; color:#bd9709; flex:1; cursor:pointer;position:relative;">
+                        class="rt-renew-btn rt-renew-btn-year">
                     ต่ออายุ <b>1 ปี</b><br>
                     <span style="font-size:0.93em; color:#c82424; text-decoration: line-through;">ปกติ 12,000</span>
-                    <span style="font-size:0.95em; color:#159805; font-weight:700; margin-left:8px;">ลดเหลือ 10,000 เครดิต</span>
-                    <span style="position:absolute;top:1px;right:1px;background:#ffe23e;color:#b78905;padding:1px 5px;border-radius:8px;font-size:0.72em;font-weight:700;">⭐️ ยอดนิยม</span>
+                    <span style="font-size:0.96em; color:#159805; font-weight:700; margin-left:8px;">ลดเหลือ 10,000 เครดิต</span>
+                    <span class="rt-renew-popular">⭐️ ยอดนิยม</span>
                 </button>
             </div>
         </form>
@@ -42,13 +192,13 @@
 </div>
 
 <!-- Modal Popup -->
-<div id="confirmModal" style="display:none;position:fixed;z-index:1000;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.33);">
-  <div style="max-width:330px;background:#fff;margin:40vh auto;padding:24px 20px 16px 20px;border-radius:16px;box-shadow:0 6px 40px #0002;">
-    <div style="font-size:1.2em;font-weight:600;margin-bottom:12px;">ยืนยันการต่ออายุ</div>
-    <div id="modalDetail" style="margin-bottom:18px;"></div>
-    <div style="display:flex;gap:16px;">
-      <button type="button" class="btn" style="flex:1;background:#bbb;" onclick="closeModal()">ยกเลิก</button>
-      <button type="button" class="btn" style="flex:1;" onclick="submitRenew()">ยืนยัน</button>
+<div id="confirmModal" class="rt-renew-modal-overlay">
+  <div class="rt-renew-modal">
+    <div class="rt-renew-modal-title">ยืนยันการต่ออายุ</div>
+    <div id="modalDetail" class="rt-renew-modal-detail"></div>
+    <div class="rt-renew-modal-btns">
+      <button type="button" class="rt-renew-modal-btn rt-renew-modal-btn-cancel" onclick="closeModal()">ยกเลิก</button>
+      <button type="button" class="rt-renew-modal-btn rt-renew-modal-btn-confirm" onclick="submitRenew()">ยืนยัน</button>
     </div>
   </div>
 </div>
@@ -63,7 +213,7 @@ function confirmRenew(pkg) {
     detail = 'ต่ออายุ 1 ปี (365 วัน) ใช้ 10,000 เครดิต<br><span style="color:#888;font-size:0.95em;">(ปกติ 12,000 เครดิต)</span>';
   }
   document.getElementById('modalDetail').innerHTML = detail;
-  document.getElementById('confirmModal').style.display = 'block';
+  document.getElementById('confirmModal').style.display = 'flex';
 }
 function closeModal() {
   document.getElementById('confirmModal').style.display = 'none';
