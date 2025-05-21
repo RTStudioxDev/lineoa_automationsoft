@@ -995,66 +995,110 @@ input[type="file"].d-none { display: none; }
     color: #fff;
 }
 
-/* ===== Responsive สำหรับมือถือ ===== */
+/* MOBILE RESPONSIVE (<= 768px) */
 @media (max-width: 768px) {
-  body {
-    padding: 0 4vw;
+  body, html {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100vw;
+    overflow-x: hidden;
+  }
+  nav, .navbar {
+    flex-direction: column !important;
+    align-items: stretch !important;
     font-size: 1rem;
+    padding: 0.5rem 0.7rem;
   }
-
-  nav,
-  .navbar {
-    flex-direction: column;
-    align-items: flex-start;
-    padding: 8px 4vw;
-    font-size: 1rem;
+  .sidebar {
+    position: fixed;
+    left: -240px;
+    top: 0;
+    width: 220px;
+    height: 100vh;
+    background: #108a43;
+    z-index: 99;
+    transition: left 0.3s;
+    box-shadow: 4px 0 16px rgba(0,0,0,0.1);
   }
-
-  .content,
-  .container {
-    padding: 12px 0 12px 0;
-    max-width: 100vw;
+  .sidebar.open {
+    left: 0;
   }
-
-  table {
-    font-size: 0.95em;
-    overflow-x: auto;
+  .sidebar-toggle {
     display: block;
+    position: fixed;
+    top: 12px;
+    left: 10px;
+    background: #008f36;
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    font-size: 1.6em;
+    z-index: 120;
+    width: 46px;
+    height: 46px;
+  }
+  .content, .container, main {
+    width: 100vw !important;
+    padding: 0.5rem 1vw !important;
+    margin-left: 0 !important;
+    box-sizing: border-box;
+  }
+  .dashboard-menu,
+  .dashboard-menu .row,
+  .dashboard-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
     width: 100%;
   }
-
+  .dashboard-card, .card, .box {
+    width: 100% !important;
+    margin-bottom: 12px !important;
+    border-radius: 16px;
+    font-size: 1rem;
+    min-width: unset;
+    max-width: unset;
+  }
+  .btn, button, .button {
+    width: 100%;
+    font-size: 1.08em;
+    margin-bottom: 10px;
+  }
   .form-group,
   .form-control,
   input,
   select,
-  button {
+  textarea {
+    width: 100% !important;
     font-size: 1em;
-    width: 100%;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
   }
-
-  .btn,
-  .button {
-    width: 100%;
-    font-size: 1.05em;
-    padding: 10px 0;
-    margin-bottom: 12px;
+  table {
+    display: block;
+    width: 100% !important;
+    overflow-x: auto;
+    font-size: 0.97em;
   }
-
-  /* ซ่อน column ที่ไม่สำคัญในมือถือ (ถ้ามี) */
-  th.hide-mobile,
-  td.hide-mobile {
+  .hide-mobile {
+    display: none !important;
+  }
+  .logo {
+    width: 110px !important;
+    height: auto !important;
+  }
+}
+/* ปิด Sidebar overlay */
+@media (max-width: 768px) {
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    left: 0; top: 0;
+    width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.18);
+    z-index: 98;
+  }
+  .sidebar:not(.open) ~ .sidebar-overlay {
     display: none;
   }
 }
 
-/* สำหรับหน้าจอเล็กมาก */
-@media (max-width: 480px) {
-  .logo {
-    width: 110px;
-    height: auto;
-  }
-  .navbar-brand {
-    font-size: 1em;
-  }
-}
