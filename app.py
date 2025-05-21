@@ -1130,7 +1130,7 @@ def send_msg():
                             total_failed += 1
                             send_progress["fail"] += 1
                             log_message_send(message_id, uid, oa["id"], "fail", msg_type, detail)
-                    # ตรงนี้ถ้าอยาก delay ทีละคนใน batch ใส่เพิ่มก็ได้
+                    time.sleep(DELAY_SEC) # ทีละคนใน batch ใส่เพิ่มก็ได้
                 except Exception as e:
                     for uid in send_list:
                         total_failed += 1
@@ -1260,7 +1260,7 @@ def send_flex_msg():
                             total_failed += 1
                             send_progress["fail"] += 1
                             log_message_send(message_id, uid, oa["id"], "fail", msg_type, detail)
-                        # time.sleep(0.1)  # ไม่จำเป็นต้อง sleep ทีละคนใน batch
+                        time.sleep(DELAY_SEC)  # ไม่จำเป็นต้อง sleep ทีละคนใน batch
                     if send_cancelled:
                         break
                 except Exception as e:
