@@ -17,7 +17,6 @@ import csv
 import io
 import requests
 import json as pyjson
-from apscheduler.schedulers.background import BackgroundScheduler
 
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://admin:060843Za@147.50.240.76:27017/")
 DB_NAME = os.getenv("DB_NAME", "Lineautomation")
@@ -277,36 +276,6 @@ def clear_user_ids_of_oa(oa_id):
 
 # --- ระบบเก็บกัน Spam ---
         # LOG #
-def cleanup_send_logs():
-    # กำหนดระยะเวลาที่ต้องการเก็บ log (เช่น 1 วัน)
-    log_expire_days = 1
-    expire_time = datetime.now() - timedelta(days=log_expire_days)
-    # จำกัดจำนวน log (เก็บแค่ 100 ล่าสุด)
-    max_logs = 100
-
-    # loop ทุก user และ oa_list
-    users = mongo_db.users.find({})
-    for user in users:
-        updated = False
-        for oa in user.get('oa_list', []):
-            logs = oa.get('send_logs', [])
-            # ลบ log ที่เก่ากว่ากำหนด หรือมากกว่า max_logs
-            new_logs = [log for log in logs if log.get('sent_at', datetime.now()) >= expire_time]
-            if len(new_logs) > max_logs:
-                new_logs = new_logs[-max_logs:]  # เก็บแค่ 100 log ล่าสุด
-            if logs != new_logs:
-                oa['send_logs'] = new_logs
-                updated = True
-        if updated:
-            mongo_db.users.update_one({'_id': user['_id']}, {'$set': {'oa_list': user['oa_list']}})
-    print("[AutoClean] send_logs cleaned at", datetime.now())
-
-# ===== APScheduler ตรงนี้ =====
-scheduler = BackgroundScheduler()
-scheduler.add_job(cleanup_send_logs, 'interval', minutes=30)
-scheduler.start()
-# ===== จบส่วน Scheduler =====
-
 def log_message_send(
     message_id,
     user_id,
