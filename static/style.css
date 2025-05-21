@@ -994,3 +994,67 @@ input[type="file"].d-none { display: none; }
     background: linear-gradient(90deg,#ff9898 0%, #fa6161 100%);
     color: #fff;
 }
+
+/* ===== Responsive สำหรับมือถือ ===== */
+@media (max-width: 768px) {
+  body {
+    padding: 0 4vw;
+    font-size: 1rem;
+  }
+
+  nav,
+  .navbar {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 8px 4vw;
+    font-size: 1rem;
+  }
+
+  .content,
+  .container {
+    padding: 12px 0 12px 0;
+    max-width: 100vw;
+  }
+
+  table {
+    font-size: 0.95em;
+    overflow-x: auto;
+    display: block;
+    width: 100%;
+  }
+
+  .form-group,
+  .form-control,
+  input,
+  select,
+  button {
+    font-size: 1em;
+    width: 100%;
+    margin-bottom: 12px;
+  }
+
+  .btn,
+  .button {
+    width: 100%;
+    font-size: 1.05em;
+    padding: 10px 0;
+    margin-bottom: 12px;
+  }
+
+  /* ซ่อน column ที่ไม่สำคัญในมือถือ (ถ้ามี) */
+  th.hide-mobile,
+  td.hide-mobile {
+    display: none;
+  }
+}
+
+/* สำหรับหน้าจอเล็กมาก */
+@media (max-width: 480px) {
+  .logo {
+    width: 110px;
+    height: auto;
+  }
+  .navbar-brand {
+    font-size: 1em;
+  }
+}
