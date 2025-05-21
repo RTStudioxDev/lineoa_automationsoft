@@ -2,7 +2,7 @@ import time
 from flask import Flask, render_template, request, redirect, url_for, flash, session, send_from_directory, Blueprint, jsonify, Response
 from line_api import LineAPI
 from functools import wraps
-from pymongo import MongoClient
+from pymongo import MongoClient, ASCENDING
 import pandas as pd
 import os
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -322,6 +322,33 @@ def already_sent_recently(user_id, oa_id, msg_type, detail, hours=6):
             ):
                 return True
     return False
+
+def cleanup_send_logs():
+    # เวลาปัจจุบัน
+    now = datetime.now()
+    expire_time = now - timedelta(days=7)
+    
+    # ดึง users ทั้งหมด
+    users = mongo_db.users.find()
+    for user in users:
+        update_needed = False
+        new_oa_list = []
+        for oa in user.get("oa_list", []):
+            logs = oa.get("send_logs", [])
+            # คัด log ที่ sent_at ยังไม่เก่าเกิน 7 วัน
+            new_logs = [log for log in logs if log.get("sent_at") and log["sent_at"] > expire_time]
+            if len(new_logs) != len(logs):
+                update_needed = True
+            oa["send_logs"] = new_logs
+            new_oa_list.append(oa)
+        # ถ้ามีการเปลี่ยนแปลง log ให้ update document ในฐานข้อมูล
+        if update_needed:
+            mongo_db.users.update_one(
+                {"_id": user["_id"]},
+                {"$set": {"oa_list": new_oa_list}}
+            )
+
+cleanup_send_logs()
 
 # --- ระบบตั้งเวลาส่ง ---
 def scheduled_message_worker():
