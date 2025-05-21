@@ -82,6 +82,7 @@ img.message-img {
                 <th>ประเภทเวลา</th>
                 <th>รายละเอียด</th>
                 <th>สถานะ</th>
+                <th>จำนวนที่ส่ง</th>
             </tr>
         </thead>
         <tbody>
@@ -145,6 +146,9 @@ img.message-img {
                             <img src="{{ msg.detail.image_url }}" alt="Image" class="message-img">
                         {% endif %}
                     {% endif %}
+                </td>
+                <td>
+                    {{ msg.send_count or 1 }} คน
                 </td>
                 <td>
                     {% if msg.status in ["pending", "waiting"] %}

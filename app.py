@@ -1308,8 +1308,19 @@ def message_history():
             for log in oa.get("send_logs", []):
                 log["_oa_id"] = oa_id
                 all_logs.append(log)
-    # เรียง log จากใหม่ไปเก่า
-    messages = sorted(all_logs, key=lambda x: x.get("sent_at", datetime.min), reverse=True)
+    # ====== รวม message_id ซ้ำกันเข้า group ======
+    from collections import defaultdict
+    group = defaultdict(list)
+    for log in all_logs:
+        group[log.get("message_id")].append(log)
+    grouped_messages = []
+    for msg_id, logs in group.items():
+        main_log = logs[0].copy()
+        main_log['send_count'] = len(logs)
+        main_log['all_status'] = [l.get('status') for l in logs]
+        grouped_messages.append(main_log)
+    # เรียงจากใหม่ไปเก่า
+    messages = sorted(grouped_messages, key=lambda x: x.get("sent_at", datetime.min), reverse=True)
     return render_template("message_history.html", messages=messages, oa_map=oa_map)
 
 # --- สร้าง FLEX MESSAGE ---
