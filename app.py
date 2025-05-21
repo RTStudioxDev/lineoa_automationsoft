@@ -1121,19 +1121,19 @@ def send_msg():
                     continue
                 try:
                     success = api.send_multicast(send_list, text, image_url)
-                    if success:
-                        total_sent += len(send_list)
-                        for uid in send_list:
+                    for uid in send_list:
+                        if success:
+                            total_sent += 1
                             send_progress["current"] += 1
                             log_message_send(message_id, uid, oa["id"], "success", msg_type, detail)
-                    else:
-                        total_failed += len(send_list)
-                        for uid in send_list:
+                        else:
+                            total_failed += 1
                             send_progress["fail"] += 1
                             log_message_send(message_id, uid, oa["id"], "fail", msg_type, detail)
+                    # ตรงนี้ถ้าอยาก delay ทีละคนใน batch ใส่เพิ่มก็ได้
                 except Exception as e:
-                    total_failed += len(send_list)
                     for uid in send_list:
+                        total_failed += 1
                         send_progress["fail"] += 1
                         log_message_send(message_id, uid, oa["id"], "fail", msg_type, detail)
                 time.sleep(DELAY_SEC)
@@ -1231,7 +1231,7 @@ def send_flex_msg():
 
         if target == "broadcast":
             BATCH_SIZE = 500
-            DELAY_SEC = 2
+            DELAY_SEC = 3
             total_sent = 0
             total_failed = 0
             skipped = 0
@@ -1251,24 +1251,26 @@ def send_flex_msg():
                     continue
                 try:
                     success = api.send_multicast_flex(send_list, flex_content, alt_text)
-                    if success:
-                        total_sent += len(send_list)
-                        for uid in send_list:
+                    for uid in send_list:
+                        if success:
+                            total_sent += 1
                             send_progress["current"] += 1
                             log_message_send(message_id, uid, oa["id"], "success", msg_type, detail)
-                    else:
-                        total_failed += len(send_list)
-                        for uid in send_list:
+                        else:
+                            total_failed += 1
                             send_progress["fail"] += 1
                             log_message_send(message_id, uid, oa["id"], "fail", msg_type, detail)
+                        # time.sleep(0.1)  # ไม่จำเป็นต้อง sleep ทีละคนใน batch
+                    if send_cancelled:
+                        break
                 except Exception as e:
-                    total_failed += len(send_list)
                     for uid in send_list:
+                        total_failed += 1
                         send_progress["fail"] += 1
                         log_message_send(message_id, uid, oa["id"], "fail", msg_type, detail)
+                    if send_cancelled:
+                        break
                 time.sleep(DELAY_SEC)
-                if send_cancelled:
-                    break
             send_progress["done"] = True
             flash(f"ส่ง Flex Broadcast สำเร็จ: {total_sent} คน, ข้าม {skipped} คน, ล้มเหลว {total_failed} คน")
         else:

@@ -337,10 +337,12 @@ input[type="radio"] {
     document.getElementById('send-flex-form').onsubmit = function(e) {
         openSendModal();
         sendProgressInterval = setInterval(function() {
-            fetch('/send_progress').then(r=>r.json()).then(d=>{
+            fetch('/send_progress')
+            .then(r => r.json())
+            .then(d => {
                 updateProgressUI(d.current, d.total, d.fail || 0);
                 if (d.done) {
-                    setTimeout(closeSendModal, 1000);
+                    setTimeout(closeSendModal, 800);
                     clearInterval(sendProgressInterval);
                 }
             });
