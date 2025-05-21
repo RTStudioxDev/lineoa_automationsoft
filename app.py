@@ -509,7 +509,7 @@ def login_user():
                 {"$set": {"last_ip": ip}}
             )
             flash("เข้าสู่ระบบสำเร็จ")
-            return render_template("loginweb.html")
+            return redirect(url_for("login"))
         else:
             flash("ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง")
     return render_template("loginweb.html")
