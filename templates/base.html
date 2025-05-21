@@ -5,6 +5,7 @@
     <title>Line Automationsoft @RTStudioXCode</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- Favicon ต่างๆ -->
     <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon-16x16.png') }}">
     <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32x32.png') }}">
     <link rel="icon" type="image/png" sizes="48x48" href="{{ url_for('static', filename='favicon-48x48.png') }}">
@@ -14,10 +15,10 @@
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
 </head>
 <body>
-<button class="sidebar-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open');">
-  &#9776;
-</button>
-<div class="sidebar-overlay" onclick="document.querySelector('.sidebar').classList.remove('open');"></div>
+<!-- Hamburger Sidebar Toggle & Overlay (นอก layout) -->
+<button class="sidebar-toggle" aria-label="เมนู" type="button">&#9776;</button>
+<div class="sidebar-overlay"></div>
+
 <nav class="top-navbar">
     LineOA Automation. Copyright © RTStudioXCode
     {% if days_left is not none %}
@@ -39,7 +40,7 @@
                 <div class="profile-item"><span>ชื่อผู้ใช้:</span> <b>{{ session['user_login'] }}</b></div>
                 <div class="profile-item">
                   <span>เครดิตคงเหลือ:</span> <b class="profile-credit">{{ user.credit if user and user.credit is not none else 0 }}</b>
-              </div>
+                </div>
                 <div class="profile-item">
                     IP ที่ใช้งาน: <b class="profile-ip">{{ user.last_ip if user and user.last_ip else '-' }}</b>
                 </div>
@@ -68,11 +69,11 @@
       {% endif %}
     </div>
 </nav>
+
 <div class="layout">
     <aside class="sidebar">
         <div class="sidebar-header">
           <a href="{{ url_for('dashboard') }}" class="sidebar-title">หน้าหลัก</a>
-            <!-- <span class="sidebar-title">MENU</span> -->
         </div>
         {% if oa %}
             <div class="sidebar-account">
@@ -121,16 +122,32 @@
             {% block content %}{% endblock %}
         </div>
     </main>
-    <script>
-    function toggleProfileMenu() {
-        const container = document.querySelector('.profile-menu-container');
-        container.classList.toggle('open');
-        // ปิด dropdown ถ้าคลิกข้างนอก
-        window.addEventListener('click', function(e) {
-            if (!container.contains(e.target)) container.classList.remove('open');
-        }, {once:true});
-    }
-    </script>
 </div>
+<!-- JS ทั้งหมดไว้ท้าย body -->
+<script>
+function toggleProfileMenu() {
+    const container = document.querySelector('.profile-menu-container');
+    container.classList.toggle('open');
+    // ปิด dropdown ถ้าคลิกข้างนอก
+    window.addEventListener('click', function(e) {
+        if (!container.contains(e.target)) container.classList.remove('open');
+    }, {once:true});
+}
+document.addEventListener("DOMContentLoaded", function(){
+  const sidebar = document.querySelector('.sidebar');
+  const overlay = document.querySelector('.sidebar-overlay');
+  const toggle = document.querySelector('.sidebar-toggle');
+  if(toggle && sidebar && overlay){
+    toggle.onclick = function() {
+      sidebar.classList.toggle('open');
+      overlay.style.display = sidebar.classList.contains('open') ? 'block' : 'none';
+    };
+    overlay.onclick = function() {
+      sidebar.classList.remove('open');
+      overlay.style.display = 'none';
+    };
+  }
+});
+</script>
 </body>
 </html>

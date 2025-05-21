@@ -995,110 +995,142 @@ input[type="file"].d-none { display: none; }
     color: #fff;
 }
 
-/* MOBILE RESPONSIVE (<= 768px) */
-@media (max-width: 768px) {
-  body, html {
-    padding: 0 !important;
-    margin: 0 !important;
-    width: 100vw;
-    overflow-x: hidden;
-  }
-  nav, .navbar {
-    flex-direction: column !important;
-    align-items: stretch !important;
-    font-size: 1rem;
-    padding: 0.5rem 0.7rem;
+/* ===== MOBILE-FIRST RESPONSIVE (ปรับใหม่หมด) ===== */
+
+/* Sidebar Toggle ปุ่ม hamburger */
+.sidebar-toggle {
+  display: none; /* Default ซ่อน */
+}
+
+@media (max-width: 900px) {
+  .layout {
+    flex-direction: column;
   }
   .sidebar {
     position: fixed;
     left: -240px;
     top: 0;
-    width: 220px;
+    width: 210px !important;
     height: 100vh;
+    min-width: unset;
     background: #108a43;
-    z-index: 99;
-    transition: left 0.3s;
-    box-shadow: 4px 0 16px rgba(0,0,0,0.1);
+    z-index: 1001;
+    box-shadow: 4px 0 16px rgba(0,0,0,0.15);
+    border-radius: 0 18px 18px 0;
+    transition: left 0.35s cubic-bezier(.4,0,.2,1);
+    padding-top: 56px;
+    overflow-y: auto;
   }
-  .sidebar.open {
-    left: 0;
-  }
+  .sidebar.open { left: 0 !important; }
   .sidebar-toggle {
     display: block;
     position: fixed;
     top: 12px;
-    left: 10px;
+    left: 12px;
     background: #008f36;
     color: #fff;
     border: none;
-    border-radius: 7px;
-    font-size: 1.6em;
-    z-index: 120;
-    width: 46px;
-    height: 46px;
+    border-radius: 9px;
+    font-size: 2em;
+    z-index: 1202;
+    width: 48px;
+    height: 48px;
+    box-shadow: 0 2px 8px rgba(0,143,54,0.08);
   }
-  .content, .container, main {
-    width: 100vw !important;
-    padding: 0.5rem 1vw !important;
-    margin-left: 0 !important;
-    box-sizing: border-box;
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    left: 0; top: 0;
+    width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.21);
+    z-index: 1000;
   }
-  .dashboard-menu,
-  .dashboard-menu .row,
-  .dashboard-cards {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    width: 100%;
-  }
-  .dashboard-card, .card, .box {
-    width: 100% !important;
-    margin-bottom: 12px !important;
-    border-radius: 16px;
-    font-size: 1rem;
-    min-width: unset;
-    max-width: unset;
-  }
-  .btn, button, .button {
-    width: 100%;
-    font-size: 1.08em;
-    margin-bottom: 10px;
-  }
-  .form-group,
-  .form-control,
-  input,
-  select,
-  textarea {
-    width: 100% !important;
-    font-size: 1em;
-    margin-bottom: 10px;
-  }
-  table {
+  .sidebar.open ~ .sidebar-overlay {
     display: block;
+  }
+  .content, .main-content, .container, main {
+    margin-left: 0 !important;
+    padding: 1rem 4vw 2.5rem 4vw !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    box-sizing: border-box;
+    min-width: 0;
+    overflow-x: hidden;
+  }
+  nav, .navbar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    font-size: 1.1em;
+    padding: 0.7rem 1vw;
+  }
+  .dashboard-row, .dashboard-menu, .dashboard-links {
+    flex-direction: column !important;
+    gap: 16px !important;
     width: 100% !important;
-    overflow-x: auto;
-    font-size: 0.97em;
+    align-items: stretch !important;
+  }
+  .dashboard-card, .card, .box, .history-card {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100vw !important;
+    margin-bottom: 14px !important;
+    border-radius: 18px !important;
+    font-size: 1em !important;
+    padding: 24px 5vw 18px 5vw !important;
+    box-sizing: border-box !important;
+  }
+  .dashboard-actions {
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+  .btn, button, .button, .approve-btn, .reject-btn {
+    width: 100% !important;
+    font-size: 1.08em !important;
+    margin-bottom: 10px !important;
+    padding: 14px 0 !important;
+    box-sizing: border-box !important;
+  }
+  input, select, textarea, .form-control {
+    width: 100% !important;
+    font-size: 1.07em !important;
+    margin-bottom: 14px !important;
+    min-width: 0 !important;
+  }
+  .upload-area {
+    flex-direction: column !important;
+    gap: 14px !important;
+    align-items: stretch !important;
+  }
+  table, .history-table {
+    display: block !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    overflow-x: auto !important;
+    font-size: 1em !important;
+    box-sizing: border-box !important;
+  }
+  th, td {
+    min-width: 80px;
+    word-break: break-word;
+    padding: 10px 5px !important;
+    font-size: 1em !important;
   }
   .hide-mobile {
     display: none !important;
   }
   .logo {
-    width: 110px !important;
+    width: 94px !important;
     height: auto !important;
   }
 }
-/* ปิด Sidebar overlay */
-@media (max-width: 768px) {
-  .sidebar-overlay {
-    display: block;
-    position: fixed;
-    left: 0; top: 0;
-    width: 100vw; height: 100vh;
-    background: rgba(0,0,0,0.18);
-    z-index: 98;
+
+/* Ultra mobile (<500px) ปรับขนาดฟอนต์/ช่องว่างให้เล็กลง */
+@media (max-width: 500px) {
+  body, html { font-size: 14.2px !important; }
+  nav, .navbar { font-size: 0.95em; }
+  .dashboard-card, .card, .box, .history-card {
+    padding: 16px 2vw 12px 2vw !important;
   }
-  .sidebar:not(.open) ~ .sidebar-overlay {
-    display: none;
-  }
+  .sidebar { width: 70vw !important; min-width: 150px !important;}
 }
 
