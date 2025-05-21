@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+  <h2>เลือกบัญชี LINE OA</h2>
+  <form method="post">
+      <label>บัญชี OA:</label>
+      <select name="oa_id" required>
+          {% for oa in oa_list %}
+            <option value="{{ oa.id }}">{{ oa.name }}</option>
+          {% endfor %}
+      </select>
+      <button type="submit">เปลี่ยน OA</button>
+  </form>
+{% endblock %}
