@@ -51,19 +51,24 @@
     border-radius: 18px;
     box-shadow: 0 2px 18px #e3f6e0;
     padding: 18px 10px;
-    min-height: 200px;
+    min-height: 220px;
     display: flex;
     justify-content: center;
     align-items: center;
     max-width: 100%;
+    width: 100%;
 }
 #flex_preview img {
-    border-radius: 12px;
+    border-radius: 18px;
     box-shadow: 0 2px 18px #e7fbe6;
     margin: 0 auto;
     display: block;
-    max-width: 300px;
-    max-height: 200px;
+    max-width: 100%;
+    max-height: 400px; /* เพิ่มขนาดตามต้องการ */
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+    background: #f8f8f8;
 }
 
 .send-flex-container .btn {
@@ -288,26 +293,31 @@ input[type="radio"] {
                 let s = arStr.split(":");
                 if (s.length === 2) aspectRatio = [+s[0], +s[1]];
             }
-            let w = 320;
-            let h = Math.round(w * aspectRatio[1] / aspectRatio[0]);
+            let w = "100%";
+            let h = "auto"; // ให้ auto ตามขนาดจริง
+
+            // ปรับ object-fit ตาม mode ที่กำหนด
             let aspectMode = (json.hero.aspectMode || 'cover');
             let fitStyle = (aspectMode === 'fit')
                 ? "object-fit:contain;background:#f8f8f8;"
                 : "object-fit:cover;background:#f8f8f8;";
-            html += `<div style="width:${w}px;margin:0 auto;border-radius:18px;overflow:hidden;box-shadow:0 2px 24px #ccc;">
-                <img src="${json.hero.url}" alt="" 
-                    style="display:block;width:100%;height:${h}px;${fitStyle}">
-            `;
-            html += '<div style="padding:6px 0;text-align:center">';
+
+            // ให้รูปใหญ่เต็มพื้นที่ (responsive)
+            html += `<div style="width:100%;max-width:700px;margin:0 auto;border-radius:18px;overflow:hidden;box-shadow:0 2px 24px #ccc;">`;
+            html += `<img src="${json.hero.url}" alt="" 
+                    style="display:block;width:100%;height:auto;max-height:400px;${fitStyle}">`;
+            html += `</div>`;
+
+            html += '<div style="padding:10px 0 0 0;text-align:center">';
             if (json.body && json.body.contents && json.body.contents[0]) {
                 let t = json.body.contents[0];
                 if (t.type === "box" && t.contents && t.contents[0] && t.contents[0].type === "text") {
-                    html += `<div style="font-size:1.1em;font-weight:bold;color:${t.contents[0].color||'#228B22'}">${t.contents[0].text||''}</div>`;
+                    html += `<div style="font-size:1.15em;font-weight:bold;color:${t.contents[0].color||'#228B22'}">${t.contents[0].text||''}</div>`;
                 } else if (t.type === "text") {
-                    html += `<div style="font-size:1.1em;font-weight:bold;color:${t.color||'#228B22'}">${t.text||''}</div>`;
+                    html += `<div style="font-size:1.15em;font-weight:bold;color:${t.color||'#228B22'}">${t.text||''}</div>`;
                 }
             }
-            html += '</div></div>';
+            html += '</div>';
             if (arStr) {
                 html += `<div style="text-align:center;font-size:.97em;color:#666;margin:3px 0 0 0;">ขนาดของรูป: ${arStr}</div>`;
             }

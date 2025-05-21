@@ -409,6 +409,19 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // updateFlexJson ทุกครั้งที่ user กรอก field
     document.getElementById("flex-form").addEventListener("input", updateFlexJson);
+
+    document.getElementById("flex-form").addEventListener("submit", function(e) {
+        const url = document.getElementById("uploaded-url").value;
+        // เฉพาะกรณี type เป็น link หรือ message ถึงต้องมีรูป
+        const type = document.getElementById("type-select").value;
+        if ((type === "link" || type === "message") && !url) {
+            alert("กรุณาอัปโหลดรูปภาพ และรอจนกว่ารูปจะอัปโหลดเสร็จ (มี preview รูป) ก่อนกดบันทึก");
+            e.preventDefault();
+            return false;
+        }
+        // ป้องกันปัญหา flex_json เก่าค้างไว้
+        updateFlexJson();
+    });
 });
 </script>
 {% endblock %}
