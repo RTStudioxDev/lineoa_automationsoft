@@ -206,7 +206,6 @@ def get_api_oa_from_db(user_id):
         "oa_list.user_ids": user_id
     })
     if user and user.get("oa_list"):
-        # หา OA ที่ user_id อยู่ใน user_ids
         for oa in user["oa_list"]:
             if "user_ids" in oa and user_id in oa["user_ids"]:
                 return {
@@ -240,19 +239,22 @@ def add_user_id_to_oa(user, oa_id, user_id):
             break
 
 def save_userid_to_oa(oa_id, user_id):
+    oa_id = str(oa_id)  # สำคัญมาก!
     user = mongo_db.users.find_one({"oa_list.id": oa_id})
     if user:
+        updated = False
         for oa in user["oa_list"]:
-            if oa["id"] == oa_id:
+            if str(oa["id"]) == oa_id:
                 if "user_ids" not in oa:
                     oa["user_ids"] = []
                 if user_id not in oa["user_ids"]:
                     oa["user_ids"].append(user_id)
-        # update oa_list กลับเข้า user นี้
-        mongo_db.users.update_one(
-            {"_id": user["_id"]},
-            {"$set": {"oa_list": user["oa_list"]}}
-        )
+                    updated = True
+        if updated:
+            mongo_db.users.update_one(
+                {"_id": user["_id"]},
+                {"$set": {"oa_list": user["oa_list"]}}
+            )
 
 def clear_user_ids_of_oa(oa_id):
     # หา user document ที่มี oa_id นี้
