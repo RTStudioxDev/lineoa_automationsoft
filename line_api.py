@@ -85,9 +85,11 @@ class LineAPI:
         }
         try:
             response = requests.post(url, headers=self.get_headers(), json=data)
-            response.raise_for_status()  # raise error ถ้าเกิด status code != 2xx
-            return response.json()
+            print("LINE API response:", response.status_code, response.text)  # <--- เพิ่มบรรทัดนี้!
+            response.raise_for_status()
+            return response.json() if response.content else {"status": "ok"}  # LINE API push ไม่มี body มัก return {}
         except requests.RequestException as e:
+            print("LINE API error:", e)
             return {"error": str(e), "response": getattr(e, 'response', None)}
         
     def broadcast_flex(self, flex_content, alt_text="ข้อความ Flex"):

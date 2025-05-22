@@ -70,7 +70,7 @@ def get_oa_id_from_mid(mid, target_oa_id=None):
     if result and "oa_list" in result and result["oa_list"]:
         return result["oa_list"][0]["id"]
 
-    # 2. หา OA ที่ยังไม่มี mid (ถ้ามีมากกว่า 1 ตัว ต้อง mapping manual)
+    # 2. หา OA ที่ยังไม่มี mid (auto mapping ทุกกรณี)
     users = list(mongo_db.users.find({}))
     candidates = []
     for user in users:
@@ -78,16 +78,26 @@ def get_oa_id_from_mid(mid, target_oa_id=None):
             if not oa.get("mid"):
                 candidates.append((user, idx, oa))
 
-    if len(candidates) == 1:
+    # ถ้ามี target_oa_id ให้เลือกอันที่ oa_id ตรงกัน
+    if target_oa_id:
+        for user, idx, oa in candidates:
+            if str(oa.get("id")) == str(target_oa_id):
+                mongo_db.users.update_one(
+                    {"_id": user["_id"]},
+                    {"$set": {f"oa_list.{idx}.mid": mid}}
+                )
+                print(f"[AUTO] Mapping mid {mid} → oa_id {oa['id']} (from target_oa_id)")
+                return oa["id"]
+
+    # ถ้าไม่มี target_oa_id หรือไม่ตรง, เลือกอันแรกที่เจอ
+    if candidates:
         user, idx, oa = candidates[0]
         mongo_db.users.update_one(
             {"_id": user["_id"]},
             {"$set": {f"oa_list.{idx}.mid": mid}}
         )
-        print(f"[AUTO] Mapping mid {mid} → oa_id {oa['id']}")
+        print(f"[AUTO] Force-mapping mid {mid} → oa_id {oa['id']}")
         return oa["id"]
-    elif len(candidates) > 1:
-        print("[ERROR] มี OA หลายตัวที่ยังไม่มี mid! ต้อง mapping เองใน admin ก่อนใช้งาน")
     else:
         print("[ERROR] ไม่พบ OA ที่ยังไม่มี mid")
     return None
@@ -275,6 +285,19 @@ def clear_user_ids_of_oa(oa_id):
             )
             return removed_count
     return None
+
+def map_oa_mid(oa_id, mid):
+    user = mongo_db.users.find_one({"oa_list.id": oa_id})
+    if user:
+        for idx, oa in enumerate(user.get("oa_list", [])):
+            if oa.get("id") == oa_id:
+                mongo_db.users.update_one(
+                    {"_id": user["_id"]},
+                    {"$set": {f"oa_list.{idx}.mid": mid}}
+                )
+                print(f"OA {oa_id} mapping mid {mid} สำเร็จ")
+                return True
+    return False
 
 # --- ระบบเก็บกัน Spam ---
         # LOG #
@@ -1142,26 +1165,39 @@ def add_line_userid():
     print(data)
     user_id = data.get("user_id")
     oa_id = data.get("oa_id")
-    print("oa_id from request:", oa_id)
     username = data.get("username")
+
+    # กรณี manual จาก App Script/ระบบอื่น
     if user_id and oa_id and username:
+        print(f"[DEBUG] Manual add user_id={user_id} to oa_id={oa_id} by username={username}")
         save_userid_to_oa(oa_id, user_id)
         return jsonify({"status": "ok", "type": "manual"}), 200
 
+    # กรณีมาจาก LINE Webhook ทั่วไป
     if "events" in data and "destination" in data:
         oa_mid = data["destination"]
         print("oa_mid from webhook:", oa_mid)
         mapped_oa_id = get_oa_id_from_mid(oa_mid, target_oa_id=oa_id)
         print("mapped_oa_id:", mapped_oa_id)
         found = False
+        missing_mapping = False
         for event in data["events"]:
             user_id = event.get("source", {}).get("userId")
             print("user_id from event:", user_id)
             if user_id and mapped_oa_id:
                 save_userid_to_oa(mapped_oa_id, user_id)
                 found = True
+            elif user_id and not mapped_oa_id:
+                missing_mapping = True
+
         if found:
             return jsonify({"status": "ok", "type": "webhook"}), 200
+        elif missing_mapping:
+            print("[ERROR] OA MID นี้ยังไม่ได้ mapping กับ oa_id ในระบบ กรุณาให้ admin เพิ่ม mid ให้ oa_list ด้วยตัวเอง")
+            return jsonify({
+                "status": "error",
+                "msg": "oa_mid ยังไม่ได้ mapping กับ oa_id กรุณาเพิ่ม mid ในฐานข้อมูลก่อนใช้งาน"
+            }), 200
         else:
             print("[ERROR] No userId or cannot map oa_id")
             return jsonify({"status": "error", "msg": "no userId or cannot map oa_id"}), 200
@@ -1243,53 +1279,55 @@ def send_msg():
         # --- ฟังก์ชันส่งข้อความ, อัปเดต progress แบบ per-user ---
         def send_all_msgs(to_user_ids):
             total_sent, total_failed, skipped = 0, 0, 0
-            BATCH_SIZE = 500
-            DELAY_SEC = 3
-            send_progress_by_user[user] = {"current": 0, "total": len(to_user_ids), "fail": 0, "done": False, "user_id": len(user_ids)}
+            DELAY_SEC = 5  # กัน rate limit LINE (ถ้า user เยอะมากอาจเพิ่มเป็น 1.5-2 วิ)
+            send_progress_by_user[user] = {
+                "current": 0,
+                "total": len(to_user_ids),
+                "fail": 0,
+                "done": False,
+                "user_id": len(user_ids)
+            }
             send_cancelled = False
 
-            for i in range(0, len(to_user_ids), BATCH_SIZE):
-                batch = to_user_ids[i:i+BATCH_SIZE]
-                send_list = []
-                for user_id in batch:
-                    if send_cancelled:
+            for user_id in to_user_ids:
+                if send_cancelled:
+                    break
+                skip_this = False
+                for msg in messages:
+                    detail = {
+                        "type": msg["type"],
+                        "text": msg.get("text"),
+                        "image_url": msg.get("image_url")
+                    }
+                    if already_sent_recently(user_id, oa["id"], msg["type"], detail, hours=6):
+                        skipped += 1
+                        skip_this = True
                         break
-                    skip_this = False
-                    for msg in messages:
-                        detail = {"type": msg["type"], "text": msg.get("text"), "image_url": msg.get("image_url")}
-                        if already_sent_recently(user_id, oa["id"], msg["type"], detail, hours=6):
-                            skipped += 1
-                            skip_this = True
-                            break
-                    if not skip_this:
-                        send_list.append(user_id)
-                if not send_list:
+                if skip_this:
                     continue
                 try:
                     for msg in messages:
                         if msg["type"] == "text":
-                            success = api.send_multicast(user_ids, msg["text"], None)
+                            success = api.send_message(user_id, msg["text"], None)
                         elif msg["type"] == "image":
-                            success = api.send_multicast(user_ids, "", msg["image_url"])
-                        for uid in send_list:
-                            if success:
-                                total_sent += 1
-                                send_progress_by_user[user]["current"] += 1
-                                log_message_send(message_id, uid, oa["id"], "success", msg["type"], msg)
-                            else:
-                                total_failed += 1
-                                send_progress_by_user[user]["fail"] += 1
-                                log_message_send(message_id, uid, oa["id"], "fail", msg["type"], msg)
+                            success = api.send_message(user_id, "", msg["image_url"])
+                        else:
+                            success = False  # กัน type อื่นๆ
+                        if success:
+                            total_sent += 1
+                            send_progress_by_user[user]["current"] += 1
+                            log_message_send(message_id, user_id, oa["id"], "success", msg["type"], msg)
+                        else:
+                            total_failed += 1
+                            send_progress_by_user[user]["fail"] += 1
+                            log_message_send(message_id, user_id, oa["id"], "fail", msg["type"], msg)
                     time.sleep(DELAY_SEC)
                 except Exception as e:
-                    for uid in send_list:
-                        total_failed += 1
-                        send_progress_by_user[user]["fail"] += 1
-                        log_message_send(message_id, uid, oa["id"], "fail", "multi", {"messages": messages})
-                if send_cancelled:
-                    break
+                    total_failed += 1
+                    send_progress_by_user[user]["fail"] += 1
+                    log_message_send(message_id, user_id, oa["id"], "fail", "multi", {"messages": messages})
             send_progress_by_user[user]["done"] = True
-            flash(f"ส่งข้อความ Broadcast สำเร็จ: {total_sent} คน, ข้าม {skipped} คน, ล้มเหลว {total_failed} คน")
+            flash(f"ส่งข้อความ Broadcast (push ทีละคน) สำเร็จ: {total_sent} คน, ข้าม {skipped} คน, ล้มเหลว {total_failed} คน")
 
         if target == "broadcast":
             send_all_msgs(user_ids)
@@ -1406,9 +1444,9 @@ def send_flex_msg():
 
         # ------- ส่งทันที ---------
         def send_all_flex_msgs(to_user_ids):
-            BATCH_SIZE = 500
-            DELAY_SEC = 3
-            user = session.get("user_login")   # <-- เพิ่มตรงนี้
+            BATCH_SIZE = 1  # ทีละ 1 คน
+            DELAY_SEC = 3   # ปรับเป็น 1 วิ เพื่อลดโอกาส rate limit (เลือกได้)
+            user = session.get("user_login")
             global send_progress, send_cancelled, send_progress_by_user
             total_flex = len(flexes)
             total_users = len(to_user_ids)
@@ -1425,37 +1463,27 @@ def send_flex_msg():
                     "altText": fx["altText"],
                     "json": fx["json"]
                 }
-                for i in range(0, len(to_user_ids), BATCH_SIZE):
-                    batch = to_user_ids[i:i+BATCH_SIZE]
-                    send_list = []
-                    for user_id in batch:
-                        if send_cancelled:
-                            break
-                        if not already_sent_recently(user_id, oa["id"], msg_type, detail, hours=6):
-                            send_list.append(user_id)
-                        else:
-                            skipped += 1
-                    if not send_list:
+                for user_id in to_user_ids:
+                    if send_cancelled:
+                        break
+                    if already_sent_recently(user_id, oa["id"], msg_type, detail, hours=6):
+                        skipped += 1
                         continue
                     try:
-                        success = api.send_multicast_flex(send_list, fx["json"], fx["altText"])
-                        for uid in send_list:
-                            if success:
-                                total_sent += 1
-                                send_progress["current"] += 1
-                                log_message_send(message_id, uid, oa["id"], "success", msg_type, detail)
-                            else:
-                                total_failed += 1
-                                send_progress["fail"] += 1
-                                log_message_send(message_id, uid, oa["id"], "fail", msg_type, detail)
-                            send_progress_by_user[user] = send_progress.copy()  # <--- UPDATE REAL-TIME
-                        if send_cancelled:
-                            break
-                    except Exception as e:
-                        for uid in send_list:
+                        success = api.send_flex(user_id, fx["json"], fx["altText"])
+                        if success:
+                            total_sent += 1
+                            send_progress["current"] += 1
+                            log_message_send(message_id, user_id, oa["id"], "success", msg_type, detail)
+                        else:
                             total_failed += 1
                             send_progress["fail"] += 1
-                            log_message_send(message_id, uid, oa["id"], "fail", msg_type, detail)
+                            log_message_send(message_id, user_id, oa["id"], "fail", msg_type, detail)
+                        send_progress_by_user[user] = send_progress.copy()
+                    except Exception as e:
+                        total_failed += 1
+                        send_progress["fail"] += 1
+                        log_message_send(message_id, user_id, oa["id"], "fail", msg_type, detail)
                         send_progress_by_user[user] = send_progress.copy()
                     time.sleep(DELAY_SEC)
             send_progress["done"] = True
@@ -1477,13 +1505,31 @@ def send_flex_msg():
                     flash(f"ข้าม: ส่งริชเมสเสจ [{fx['template']}] ไปหา {user_id} แล้วภายใน 6 ชั่วโมง")
                 else:
                     result = api.send_flex(user_id, fx["json"], fx["altText"])
-                    log_message_send(message_id, user_id, oa["id"], "success" if result else "fail", msg_type, detail)
-                    sent_flag = True
+
+                    # --- ปรับปรุงตรงนี้ ---
+                    is_success = (
+                        isinstance(result, dict) and
+                        not result.get("error") and
+                        (result == {} or result.get("status") == "ok")
+                    )
+                    # print("DEBUG result:", result)   # << เปิด debug ตรงนี้ถ้ายังไม่มั่นใจ
+
+                    log_message_send(
+                        message_id, user_id, oa["id"],
+                        "success" if is_success else "fail",
+                        msg_type, detail
+                    )
+                    sent_flag = sent_flag or is_success  # มี success อย่างน้อย 1 อัน
+
+                    # Flash error เฉพาะเคส fail
+                    if not is_success:
+                        err = result.get("error") if isinstance(result, dict) else str(result)
+                        flash(f"❌ ส่งไม่สำเร็จ: {err}")
+
             if sent_flag:
                 flash(f"ส่งริชเมสเสจถึง {user_id}: สำเร็จ")
             else:
                 flash(f"ไม่มีริชเมสเสจใหม่ที่จะส่งถึง {user_id}")
-
         return redirect(url_for("send_flex_msg"))
 
     auto_message_id = "msg_" + datetime.now().strftime("%Y%m%d_%H%M%S") + "_" + uuid.uuid4().hex[:6]
