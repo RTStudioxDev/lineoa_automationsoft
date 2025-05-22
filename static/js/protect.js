@@ -7,7 +7,7 @@
         <div style="font-size:2em;text-align:center;margin-top:30vh;color:red;">
           Copyright © RTStudioXCode!<br>
           ห้ามเปิด Inspect/Console<br>
-          <img src="https://media.giphy.com/media/26uf9QPzzlKPvQG5K/giphy.gif" style="width:200px;margin-top:20px;">
+          <img src="https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHJ6aWtkMmRtbjZpZGd1M3N6dG52aWdtYXZyM3B0MGw4cGU0bTFkYyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/tJeGZumxDB01q/giphy.gif" style="width:200px;margin-top:20px;">
         </div>
       `;
       setTimeout(() => location.reload(), 3000); // หรือจะ redirect ก็ได้
