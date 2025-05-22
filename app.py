@@ -17,6 +17,7 @@ import csv
 import io
 import requests
 import json as pyjson
+from collections import defaultdict
 
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://admin:060843Za@147.50.240.76:27017/")
 DB_NAME = os.getenv("DB_NAME", "Lineautomation")
@@ -25,6 +26,7 @@ app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "lineoa-automationsoft-key")
 app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(__file__), 'uploads')
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+app.permanent_session_lifetime = timedelta(hours=2)  # 2 ชั่วโมง
 
 client = MongoClient(MONGO_URI)
 mongo_db = client[DB_NAME]
@@ -352,65 +354,168 @@ cleanup_send_logs()
 
 # --- ระบบตั้งเวลาส่ง ---
 def scheduled_message_worker():
+    BATCH_SIZE = 500
+    DELAY_SEC = 3
     while True:
         now = datetime.now()
-        # 1. วนหา users ทุกคน (หรือเฉพาะที่ต้องการ)
         users = list(mongo_db.users.find({}))
         for user in users:
             for oa in user.get("oa_list", []):
                 oa_id = oa["id"]
                 oa_token = oa.get("access_token")
                 send_logs = oa.get("send_logs", [])
+                # 1. หา log ที่ pending และถึงเวลาแล้ว
                 for log in send_logs:
-                    # 2. เฉพาะ log ที่ pending และมีกำหนด scheduled_time ถึงเวลาแล้ว
                     status = log.get("status", "")
                     detail = log.get("detail", {})
                     scheduled_time = detail.get("scheduled_time")
-                    if status == "pending" and scheduled_time:
-                        # scheduled_time เป็น datetime ไหม ถ้าไม่ใช่แปลงก่อน
-                        if isinstance(scheduled_time, str):
-                            try:
-                                scheduled_time = datetime.fromisoformat(scheduled_time)
-                            except Exception:
-                                continue
-                        if scheduled_time <= now:
-                            # ---- เริ่มส่งจริง ----
-                            error_msg = None
-                            send_status = "success"
-                            try:
-                                api = LineAPI(oa_token)
-                                if log.get("type") == "flex":
-                                    if log.get("user_id") == "broadcast":
-                                        api.broadcast_flex(detail.get("json"), detail.get("altText", "Flex Message"))
-                                    else:
-                                        api.send_flex(log.get("user_id"), detail.get("json"), detail.get("altText", "Flex Message"))
-                                else:
-                                    if log.get("user_id") == "broadcast":
-                                        api.send_broadcast(detail.get("text"), detail.get("image_url"))
-                                    else:
-                                        api.send_message(log.get("user_id"), detail.get("text"), detail.get("image_url"))
-                            except Exception as e:
-                                send_status = "fail"
-                                error_msg = str(e)
-                            # ---- อัปเดต log ใน send_logs ----
-                            mongo_db.users.update_one(
-                                {
-                                    "_id": user["_id"],
-                                    "oa_list.id": oa_id,
-                                    "oa_list.send_logs.message_id": log.get("message_id")
-                                },
-                                {
-                                    "$set": {
-                                        "oa_list.$[oa].send_logs.$[lg].status": send_status,
-                                        "oa_list.$[oa].send_logs.$[lg].sent_at": datetime.now(),
-                                        "oa_list.$[oa].send_logs.$[lg].error_msg": error_msg
-                                    }
-                                },
-                                array_filters=[
-                                    {"oa.id": oa_id},
-                                    {"lg.message_id": log.get("message_id")}
-                                ]
-                            )
+                    if status != "pending" or not scheduled_time:
+                        continue
+                    if isinstance(scheduled_time, str):
+                        try:
+                            scheduled_time = datetime.fromisoformat(scheduled_time)
+                        except Exception:
+                            continue
+                    if scheduled_time > now:
+                        continue  # ยังไม่ถึงเวลา
+
+                    # 2. "จอง" log ไว้ก่อน เปลี่ยน status = "sending"
+                    update_res = mongo_db.users.update_one(
+                        {
+                            "_id": user["_id"],
+                            "oa_list.id": oa_id,
+                            "oa_list.send_logs.message_id": log.get("message_id"),
+                            "oa_list.send_logs.status": "pending"
+                        },
+                        {
+                            "$set": {
+                                "oa_list.$[oa].send_logs.$[lg].status": "sending"
+                            }
+                        },
+                        array_filters=[
+                            {"oa.id": oa_id},
+                            {"lg.message_id": log.get("message_id")}
+                        ]
+                    )
+                    if update_res.modified_count == 0:
+                        continue  # อาจถูก worker อื่นจองไปแล้ว
+
+                    # 3. ทำการส่ง (safe)
+                    error_msg = None
+                    send_status = "success"
+                    try:
+                        api = LineAPI(oa_token)
+                        user_id = log.get("user_id")
+                        msg_type = log.get("type") or log.get("msg_type")
+                        # FLEX
+                        if msg_type == "flex":
+                            alt_text = detail.get("altText", "Flex Message")
+                            flex_json = detail.get("json")
+                            if user_id == "broadcast":
+                                user_ids = get_followers(oa_id)
+                                for i in range(0, len(user_ids), BATCH_SIZE):
+                                    batch = user_ids[i:i+BATCH_SIZE]
+                                    try:
+                                        success = api.send_multicast_flex(batch, flex_json, alt_text)
+                                        if not success:
+                                            send_status = "fail"
+                                            error_msg = "API ไม่ตอบ success"
+                                    except Exception as ex:
+                                        send_status = "fail"
+                                        error_msg = str(ex)
+                                    time.sleep(DELAY_SEC)
+                            else:
+                                try:
+                                    success = api.send_flex(user_id, flex_json, alt_text)
+                                    if not success:
+                                        send_status = "fail"
+                                        error_msg = "API ไม่ตอบ success"
+                                except Exception as ex:
+                                    send_status = "fail"
+                                    error_msg = str(ex)
+                        # MULTI
+                        elif msg_type == "multi":
+                            messages = detail.get("messages", [])
+                            if user_id == "broadcast":
+                                user_ids = get_followers(oa_id)
+                                for i in range(0, len(user_ids), BATCH_SIZE):
+                                    batch = user_ids[i:i+BATCH_SIZE]
+                                    for msg in messages:
+                                        try:
+                                            if msg["type"] == "text":
+                                                success = api.send_multicast(batch, msg["text"], None)
+                                            elif msg["type"] == "image":
+                                                success = api.send_multicast(batch, "", msg["image_url"])
+                                            if not success:
+                                                send_status = "fail"
+                                                error_msg = "API ไม่ตอบ success"
+                                        except Exception as ex:
+                                            send_status = "fail"
+                                            error_msg = str(ex)
+                                        time.sleep(DELAY_SEC)
+                            else:
+                                for msg in messages:
+                                    try:
+                                        if msg["type"] == "text":
+                                            success = api.send_message(user_id, msg["text"], None)
+                                        elif msg["type"] == "image":
+                                            success = api.send_message(user_id, "", msg["image_url"])
+                                        if not success:
+                                            send_status = "fail"
+                                            error_msg = "API ไม่ตอบ success"
+                                    except Exception as ex:
+                                        send_status = "fail"
+                                        error_msg = str(ex)
+                                    time.sleep(DELAY_SEC)
+                        # SINGLE MESSAGE
+                        else:
+                            text = detail.get("text", "")
+                            image_url = detail.get("image_url")
+                            if user_id == "broadcast":
+                                user_ids = get_followers(oa_id)
+                                for i in range(0, len(user_ids), BATCH_SIZE):
+                                    batch = user_ids[i:i+BATCH_SIZE]
+                                    try:
+                                        success = api.send_multicast(batch, text, image_url)
+                                        if not success:
+                                            send_status = "fail"
+                                            error_msg = "API ไม่ตอบ success"
+                                    except Exception as ex:
+                                        send_status = "fail"
+                                        error_msg = str(ex)
+                                    time.sleep(DELAY_SEC)
+                            else:
+                                try:
+                                    success = api.send_message(user_id, text, image_url)
+                                    if not success:
+                                        send_status = "fail"
+                                        error_msg = "API ไม่ตอบ success"
+                                except Exception as ex:
+                                    send_status = "fail"
+                                    error_msg = str(ex)
+                    except Exception as e:
+                        send_status = "fail"
+                        error_msg = str(e)
+
+                    # 4. อัปเดตผลลัพธ์
+                    mongo_db.users.update_one(
+                        {
+                            "_id": user["_id"],
+                            "oa_list.id": oa_id,
+                            "oa_list.send_logs.message_id": log.get("message_id")
+                        },
+                        {
+                            "$set": {
+                                "oa_list.$[oa].send_logs.$[lg].status": send_status,
+                                "oa_list.$[oa].send_logs.$[lg].sent_at": datetime.now(),
+                                "oa_list.$[oa].send_logs.$[lg].error_msg": error_msg
+                            }
+                        },
+                        array_filters=[
+                            {"oa.id": oa_id},
+                            {"lg.message_id": log.get("message_id")}
+                        ]
+                    )
         time.sleep(30)
 
 # เรียกใช้งาน worker 1 ตัว (ตอนรัน Flask)
@@ -611,6 +716,9 @@ def login_user():
                     return render_template("loginweb.html")
             # ถ้าไม่หมดอายุ
             session["user_login"] = username
+            session.permanent = True
+            session.pop("current_oa", None)
+
             ip = request.headers.get("X-Forwarded-For", request.remote_addr)
             ip = ip.split(',')[0].strip()
             ip = get_ipv4(ip)
@@ -619,7 +727,7 @@ def login_user():
                 {"$set": {"last_ip": ip}}
             )
             flash("เข้าสู่ระบบสำเร็จ")
-            return redirect(url_for("login"))
+            return redirect(url_for("switch_oa"))
         else:
             flash("ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง")
     return render_template("loginweb.html")
@@ -627,6 +735,8 @@ def login_user():
 @app.route("/logout")
 def logout_user():
     session.pop("user_login", None)
+    # เพิ่มบรรทัดนี้เพื่อลบ OA session เดิมที่ค้างไว้
+    session.pop("current_oa", None)
     flash("ออกจากระบบแล้ว")
     return redirect(url_for("login_user"))
 
@@ -1006,11 +1116,23 @@ def dashboard():
     total_friends = get_total_friends(oa_id)
     return render_template("dashboard.html", total_friends=total_friends, oa=oa, today=datetime.now().strftime('%Y-%m-%d'))
 
-@app.route("/switch_oa")
+@app.route("/switch_oa", methods=["GET", "POST"])
 @require_web_login
 def switch_oa():
+    # ลบ session OA ที่เคยล็อกอินไว้ (ก่อนหน้านี้) ทิ้งก่อนเสมอ
     session.pop("current_oa", None)
-    return redirect(url_for("login"))
+    
+    username = session.get("user_login")  # หรือ "username" แล้วแต่ระบบคุณ
+    oa_list = get_user_oa_list(username)
+
+    if request.method == "POST":
+        selected_oa_id = request.form.get("oa_id")
+        selected_oa = next((oa for oa in oa_list if str(oa.get("id")) == selected_oa_id), None)
+        if selected_oa:
+            session["current_oa"] = selected_oa
+        return redirect(url_for("dashboard"))  # หรือหน้าหลัก
+
+    return render_template("switch_oa.html", oa_list=oa_list)
 
 # --- WEBHOOK ---
 @app.route("/line/webhook", methods=["POST"])
@@ -1066,8 +1188,8 @@ def api_get_oa_id():
 @require_web_login
 @require_oa
 def send_msg():
-    global send_progress, send_cancelled
     oa = session["current_oa"]
+    user = session.get("user_login")   # <-- ใช้ user แทน global
     api = LineAPI(oa["access_token"])
     user_ids = get_followers(oa["id"])
     uploaded_image_url = None
@@ -1079,48 +1201,38 @@ def send_msg():
             flash("ไม่มีผู้ติดตามในระบบ (user_ids ว่าง) กรุณานำเข้ารายชื่อหรือเช็ค Access Token")
             return redirect(url_for("send_msg"))
 
-        text = request.form.get("text", "")
-        image_url = request.form.get("image_url", "").strip()
-        file = request.files.get('image_file')
+        # --- ดึงข้อความและรูปหลายบล็อกจาก form ---
+        messages = []
+        for key in request.form:
+            if key.startswith("messages[") and key.endswith("][text]"):
+                value = request.form[key].strip()
+                if value:
+                    messages.append({"type": "text", "text": value})
+        for key in request.files:
+            if key.startswith("messages[") and key.endswith("][image]"):
+                file = request.files[key]
+                if file and file.filename:
+                    image_url = upload_to_imgbb(file)
+                    messages.append({"type": "image", "image_url": image_url})
 
-        # เพิ่ม: ถ้าเลือกไฟล์ ให้อัปโหลดขึ้น imgbb
-        if file and file.filename:
-            image_url = upload_to_imgbb(file)
-            uploaded_image_url = image_url
-        # กรณีไม่มีไฟล์เลย จะใช้ image_url ที่ user กรอก
-
-        if not text and not image_url:
+        if not messages:
             flash("ต้องกรอกข้อความหรือเลือกรูปอย่างน้อย 1 อย่าง")
             return redirect(url_for("send_msg"))
-
-        # เลือกประเภทข้อความ
-        if image_url and text:
-            msg_type = "text_image"
-        elif image_url:
-            msg_type = "image"
-        else:
-            msg_type = "text"
-
-        # สร้าง detail สำหรับตรวจซ้ำ
-        detail = {
-            "text": text,
-            "image_url": image_url
-        }
 
         target = request.form.get("target")
         send_time_option = request.form.get("send_time_option", "now")
         scheduled_time = request.form.get("scheduled_time")
 
+        # --- กรณีตั้งเวลาส่ง ---
         if send_time_option == "schedule" and scheduled_time:
             log_message_send(
                 message_id=message_id,
                 user_id=target,
                 oa_id=oa["id"],
                 status="pending",
-                msg_type=msg_type,
+                msg_type="multi",
                 detail={
-                    "text": text,
-                    "image_url": image_url,
+                    "messages": messages,
                     "scheduled_time": datetime.fromisoformat(scheduled_time)
                 },
                 scheduled_time=datetime.fromisoformat(scheduled_time)
@@ -1128,56 +1240,82 @@ def send_msg():
             flash("บันทึกคิวข้อความเรียบร้อย จะส่งอัตโนมัติเมื่อถึงเวลาที่กำหนด")
             return redirect(url_for("send_msg"))
 
-        if target == "broadcast":
+        # --- ฟังก์ชันส่งข้อความ, อัปเดต progress แบบ per-user ---
+        def send_all_msgs(to_user_ids):
+            total_sent, total_failed, skipped = 0, 0, 0
             BATCH_SIZE = 500
             DELAY_SEC = 3
-            total_sent = 0
-            total_failed = 0
-            skipped = 0
-            send_progress = {"current": 0, "total": len(user_ids), "fail": 0, "done": False}
+            send_progress_by_user[user] = {"current": 0, "total": len(to_user_ids), "fail": 0, "done": False, "user_id": len(user_ids)}
             send_cancelled = False
-            for i in range(0, len(user_ids), BATCH_SIZE):
-                batch = user_ids[i:i+BATCH_SIZE]
+
+            for i in range(0, len(to_user_ids), BATCH_SIZE):
+                batch = to_user_ids[i:i+BATCH_SIZE]
                 send_list = []
                 for user_id in batch:
                     if send_cancelled:
                         break
-                    if not already_sent_recently(user_id, oa["id"], msg_type, detail, hours=6):
+                    skip_this = False
+                    for msg in messages:
+                        detail = {"type": msg["type"], "text": msg.get("text"), "image_url": msg.get("image_url")}
+                        if already_sent_recently(user_id, oa["id"], msg["type"], detail, hours=6):
+                            skipped += 1
+                            skip_this = True
+                            break
+                    if not skip_this:
                         send_list.append(user_id)
-                    else:
-                        skipped += 1
                 if not send_list:
                     continue
                 try:
-                    success = api.send_multicast(send_list, text, image_url)
-                    for uid in send_list:
-                        if success:
-                            total_sent += 1
-                            send_progress["current"] += 1
-                            log_message_send(message_id, uid, oa["id"], "success", msg_type, detail)
-                        else:
-                            total_failed += 1
-                            send_progress["fail"] += 1
-                            log_message_send(message_id, uid, oa["id"], "fail", msg_type, detail)
-                    time.sleep(DELAY_SEC) # ทีละคนใน batch ใส่เพิ่มก็ได้
+                    for msg in messages:
+                        if msg["type"] == "text":
+                            success = api.send_multicast(user_ids, msg["text"], None)
+                        elif msg["type"] == "image":
+                            success = api.send_multicast(user_ids, "", msg["image_url"])
+                        for uid in send_list:
+                            if success:
+                                total_sent += 1
+                                send_progress_by_user[user]["current"] += 1
+                                log_message_send(message_id, uid, oa["id"], "success", msg["type"], msg)
+                            else:
+                                total_failed += 1
+                                send_progress_by_user[user]["fail"] += 1
+                                log_message_send(message_id, uid, oa["id"], "fail", msg["type"], msg)
+                    time.sleep(DELAY_SEC)
                 except Exception as e:
                     for uid in send_list:
                         total_failed += 1
-                        send_progress["fail"] += 1
-                        log_message_send(message_id, uid, oa["id"], "fail", msg_type, detail)
-                time.sleep(DELAY_SEC)
+                        send_progress_by_user[user]["fail"] += 1
+                        log_message_send(message_id, uid, oa["id"], "fail", "multi", {"messages": messages})
                 if send_cancelled:
                     break
-            send_progress["done"] = True
+            send_progress_by_user[user]["done"] = True
             flash(f"ส่งข้อความ Broadcast สำเร็จ: {total_sent} คน, ข้าม {skipped} คน, ล้มเหลว {total_failed} คน")
+
+        if target == "broadcast":
+            send_all_msgs(user_ids)
         else:
             user_id = target
-            if already_sent_recently(user_id, oa["id"], msg_type, detail, hours=6):
-                flash(f"ข้าม: ส่งไปหา {user_id} แล้วภายใน 6 ชั่วโมง")
+            sent_flag = False
+            send_progress_by_user[user] = {"current": 0, "total": 1, "fail": 0, "done": False}
+            for msg in messages:
+                detail = {"type": msg["type"], "text": msg.get("text"), "image_url": msg.get("image_url")}
+                if already_sent_recently(user_id, oa["id"], msg["type"], detail, hours=6):
+                    flash(f"ข้าม: ส่งไปหา {user_id} แล้วภายใน 6 ชั่วโมง")
+                else:
+                    if msg["type"] == "text":
+                        result = api.send_message(user_id, msg["text"], None)
+                    elif msg["type"] == "image":
+                        result = api.send_message(user_id, "", msg["image_url"])
+                    log_message_send(message_id, user_id, oa["id"], "success" if result else "fail", msg["type"], msg)
+                    sent_flag = True
+                    send_progress_by_user[user]["current"] += 1 if result else 0
+                    send_progress_by_user[user]["fail"] += 0 if result else 1
+            send_progress_by_user[user]["done"] = True
+            if sent_flag:
+                flash(f"ส่งข้อความถึง {user_id}: สำเร็จ")
             else:
-                result = api.send_message(user_id, text, image_url)
-                log_message_send(message_id, user_id, oa["id"], "success" if result else "fail", msg_type, detail)
-                flash(f"ส่งข้อความถึง {user_id}: {'สำเร็จ' if result else 'ล้มเหลว'}")
+                flash(f"ไม่มีข้อความใหม่ที่จะส่งถึง {user_id}")
+
         return redirect(url_for("send_msg"))
 
     auto_message_id = "msg_" + datetime.now().strftime("%Y%m%d_%H%M%S") + "_" + uuid.uuid4().hex[:6]
@@ -1200,116 +1338,152 @@ def uploaded_file(filename):
 @require_web_login
 @require_oa
 def send_flex_msg():
+    import json as pyjson
     global send_progress, send_cancelled
     oa = session["current_oa"]
     api = LineAPI(oa["access_token"])
     user_ids = get_followers(oa["id"])
     templates = get_user_templates(session["user_login"])
-    flex_json = ""
-    selected_template = request.args.get("selected_template", "")
-    if selected_template:
-        for temp in templates:
-            if temp["name"] == selected_template:
-                flex_json = pyjson.dumps(temp["json"], ensure_ascii=False, indent=2)
 
     if request.method == "POST":
         message_id = "msg_" + datetime.now().strftime("%Y%m%d_%H%M%S") + "_" + uuid.uuid4().hex[:6]
 
-        selected_template = request.form.get("selected_template", "")
-        flex_json = request.form.get("flex_json")
+        # --- อ่าน Flex หลายอันจาก form ---
+        flexes = []
+        # โครงสร้าง request.form: flexes[flex-block-1][template], flexes[flex-block-1][json], ...
+        for key in request.form:
+            if key.startswith("flexes[") and key.endswith("][template]"):
+                block_id = key[len("flexes["):-len("][template]")]
+                template_name = request.form[key]
+                json_key = f"flexes[{block_id}][json]"
+                flex_json = request.form.get(json_key, "")
+                if not template_name or not flex_json.strip():
+                    continue
+                # หา alt_text จาก template
+                selected = next((t for t in templates if t["name"] == template_name), None)
+                alt_text = template_name
+                if selected and "alt_text" in selected:
+                    alt_text = selected["alt_text"]
+                try:
+                    flex_content = pyjson.loads(flex_json)
+                except Exception as e:
+                    flash(f"Flex #{block_id} รูปแบบริชเสเสจไม่ถูกต้อง: {e}")
+                    return redirect(url_for("send_flex_msg"))
+                flexes.append({
+                    "altText": alt_text,
+                    "json": flex_content,
+                    "template": template_name
+                })
 
-        # หาค่า alt_text จาก template ที่เลือก
-        alt_text = selected_template  # กรณีใช้ชื่อ template เป็น alt_text
-        # หรือจะดึง alt_text จากใน db จริง ๆ ก็ได้
-        selected = next((t for t in templates if t["name"] == selected_template), None)
-
-        if selected and "alt_text" in selected:
-            alt_text = selected["alt_text"] if selected and "alt_text" in selected else selected_template
-        try:
-            flex_content = pyjson.loads(flex_json)
-        except Exception as e:
-            flash(f"รูปแบบ JSON ไม่ถูกต้อง: {e}")
+        if not flexes:
+            flash("ต้องเพิ่มบล็อกริชเมสเสจอย่างน้อย 1 อัน")
             return redirect(url_for("send_flex_msg"))
 
-        msg_type = "flex"
-        detail = {
-            "altText": alt_text,
-            "json": flex_content
-        }
-
+        # -- option อื่น ๆ --
         target = request.form.get("target")
         send_time_option = request.form.get("send_time_option", "now")
         scheduled_time = request.form.get("scheduled_time")
 
+        # --- กรณีตั้งเวลาส่ง ---
         if send_time_option == "schedule" and scheduled_time:
-            log_message_send(
-                message_id=message_id,
-                user_id=target,
-                oa_id=oa["id"],
-                status="pending",
-                msg_type=msg_type,
-                detail={
-                    "json": flex_content,
-                    "altText": alt_text,
-                    "scheduled_time": datetime.fromisoformat(scheduled_time)
-                },
-                scheduled_time=datetime.fromisoformat(scheduled_time)
-            )
-            flash("บันทึกคิว Flex เรียบร้อย จะส่งอัตโนมัติเมื่อถึงเวลาที่กำหนด")
+            # Save ทุก Flex ไว้ใน pending-queue
+            for fx in flexes:
+                log_message_send(
+                    message_id=message_id,
+                    user_id=target,
+                    oa_id=oa["id"],
+                    status="pending",
+                    msg_type="flex",
+                    detail={
+                        "json": fx["json"],
+                        "altText": fx["altText"],
+                        "scheduled_time": datetime.fromisoformat(scheduled_time)
+                    },
+                    scheduled_time=datetime.fromisoformat(scheduled_time)
+                )
+            flash("บันทึกคิวริชเมสเสจทั้งหมดเรียบร้อย จะส่งอัตโนมัติเมื่อถึงเวลาที่กำหนด")
             return redirect(url_for("send_flex_msg"))
 
-        if target == "broadcast":
+        # ------- ส่งทันที ---------
+        def send_all_flex_msgs(to_user_ids):
             BATCH_SIZE = 500
             DELAY_SEC = 3
-            total_sent = 0
-            total_failed = 0
-            skipped = 0
-            send_progress = {"current": 0, "total": len(user_ids), "fail": 0, "done": False}
+            user = session.get("user_login")   # <-- เพิ่มตรงนี้
+            global send_progress, send_cancelled, send_progress_by_user
+            total_flex = len(flexes)
+            total_users = len(to_user_ids)
+            send_progress = {"current": 0, "total": total_users * total_flex, "fail": 0, "done": False, "user_id": len(user_ids)}
             send_cancelled = False
-            for i in range(0, len(user_ids), BATCH_SIZE):
-                batch = user_ids[i:i+BATCH_SIZE]
-                send_list = []
-                for user_id in batch:
-                    if send_cancelled:
-                        break
-                    if not already_sent_recently(user_id, oa["id"], msg_type, detail, hours=6):
-                        send_list.append(user_id)
-                    else:
-                        skipped += 1
-                if not send_list:
-                    continue
-                try:
-                    success = api.send_multicast_flex(send_list, flex_content, alt_text)
-                    for uid in send_list:
-                        if success:
-                            total_sent += 1
-                            send_progress["current"] += 1
-                            log_message_send(message_id, uid, oa["id"], "success", msg_type, detail)
+            send_progress_by_user[user] = send_progress.copy()
+            total_sent, total_failed, skipped = 0, 0, 0
+
+            for flex_index, fx in enumerate(flexes):
+                if send_cancelled:
+                    break
+                msg_type = "flex"
+                detail = {
+                    "altText": fx["altText"],
+                    "json": fx["json"]
+                }
+                for i in range(0, len(to_user_ids), BATCH_SIZE):
+                    batch = to_user_ids[i:i+BATCH_SIZE]
+                    send_list = []
+                    for user_id in batch:
+                        if send_cancelled:
+                            break
+                        if not already_sent_recently(user_id, oa["id"], msg_type, detail, hours=6):
+                            send_list.append(user_id)
                         else:
+                            skipped += 1
+                    if not send_list:
+                        continue
+                    try:
+                        success = api.send_multicast_flex(send_list, fx["json"], fx["altText"])
+                        for uid in send_list:
+                            if success:
+                                total_sent += 1
+                                send_progress["current"] += 1
+                                log_message_send(message_id, uid, oa["id"], "success", msg_type, detail)
+                            else:
+                                total_failed += 1
+                                send_progress["fail"] += 1
+                                log_message_send(message_id, uid, oa["id"], "fail", msg_type, detail)
+                            send_progress_by_user[user] = send_progress.copy()  # <--- UPDATE REAL-TIME
+                        if send_cancelled:
+                            break
+                    except Exception as e:
+                        for uid in send_list:
                             total_failed += 1
                             send_progress["fail"] += 1
                             log_message_send(message_id, uid, oa["id"], "fail", msg_type, detail)
-                        time.sleep(DELAY_SEC)  # ไม่จำเป็นต้อง sleep ทีละคนใน batch
-                    if send_cancelled:
-                        break
-                except Exception as e:
-                    for uid in send_list:
-                        total_failed += 1
-                        send_progress["fail"] += 1
-                        log_message_send(message_id, uid, oa["id"], "fail", msg_type, detail)
-                    if send_cancelled:
-                        break
-                time.sleep(DELAY_SEC)
+                        send_progress_by_user[user] = send_progress.copy()
+                    time.sleep(DELAY_SEC)
             send_progress["done"] = True
-            flash(f"ส่ง Flex Broadcast สำเร็จ: {total_sent} คน, ข้าม {skipped} คน, ล้มเหลว {total_failed} คน")
+            send_progress_by_user[user] = send_progress.copy()
+            flash(f"ส่งริชเมสเสจทั้งหมดสำเร็จ: {total_sent} คน, ข้าม {skipped} คน, ล้มเหลว {total_failed} คน")
+
+        if target == "broadcast":
+            send_all_flex_msgs(user_ids)
         else:
             user_id = target
-            if already_sent_recently(user_id, oa["id"], msg_type, detail, hours=6):
-                flash(f"ข้าม: ส่งไปหา {user_id} แล้วภายใน 6 ชั่วโมง")
+            sent_flag = False
+            for fx in flexes:
+                msg_type = "flex"
+                detail = {
+                    "altText": fx["altText"],
+                    "json": fx["json"]
+                }
+                if already_sent_recently(user_id, oa["id"], msg_type, detail, hours=6):
+                    flash(f"ข้าม: ส่งริชเมสเสจ [{fx['template']}] ไปหา {user_id} แล้วภายใน 6 ชั่วโมง")
+                else:
+                    result = api.send_flex(user_id, fx["json"], fx["altText"])
+                    log_message_send(message_id, user_id, oa["id"], "success" if result else "fail", msg_type, detail)
+                    sent_flag = True
+            if sent_flag:
+                flash(f"ส่งริชเมสเสจถึง {user_id}: สำเร็จ")
             else:
-                result = api.send_flex(user_id, flex_content, alt_text)
-                log_message_send(message_id, user_id, oa["id"], "success" if result else "fail", msg_type, detail)
-                flash(f"ส่ง Flex ถึง {user_id}: {'สำเร็จ' if result else 'ล้มเหลว'}")
+                flash(f"ไม่มีริชเมสเสจใหม่ที่จะส่งถึง {user_id}")
+
         return redirect(url_for("send_flex_msg"))
 
     auto_message_id = "msg_" + datetime.now().strftime("%Y%m%d_%H%M%S") + "_" + uuid.uuid4().hex[:6]
@@ -1318,8 +1492,6 @@ def send_flex_msg():
         user_ids=user_ids,
         oa=oa,
         templates=templates,
-        flex_json=flex_json,
-        selected_template=selected_template,
         today=datetime.now().strftime('%Y-%m-%d'),
         auto_message_id=auto_message_id
     )
@@ -1339,21 +1511,56 @@ def message_history():
             for log in oa.get("send_logs", []):
                 log["_oa_id"] = oa_id
                 all_logs.append(log)
-    # ====== รวม message_id ซ้ำกันเข้า group ======
-    from collections import defaultdict
-    group = defaultdict(list)
-    for log in all_logs:
-        group[log.get("message_id")].append(log)
-    grouped_messages = []
-    for msg_id, logs in group.items():
-        main_log = logs[0].copy()
-        main_log['send_count'] = len(logs)
-        main_log['all_status'] = [l.get('status') for l in logs]
-        grouped_messages.append(main_log)
-    # เรียงจากใหม่ไปเก่า
-    messages = sorted(grouped_messages, key=lambda x: x.get("sent_at", datetime.min), reverse=True)
-    return render_template("message_history.html", messages=messages, oa_map=oa_map)
 
+    # Group by message_id
+    grouped = defaultdict(list)
+    for log in all_logs:
+        grouped[log.get("message_id")].append(log)
+
+    messages = []
+    for msg_id, logs in grouped.items():
+        main = logs[0].copy()
+        all_user_ids = [l.get('user_id') for l in logs]
+        main["send_count"] = len(set(all_user_ids))
+        main["user_id_list"] = all_user_ids
+        main["all_status"] = [l.get('status') for l in logs]
+        # ---- Collect all_details ----
+        unique_details = []
+        seen = set()
+        for l in logs:
+            d = l.get("detail", {})
+            msg_type = l.get("type") or d.get("type")
+            # รองรับ multi, flex, text, image
+            if msg_type == "multi" and d.get("messages"):
+                for m in d["messages"]:
+                    key = f"{m.get('type')}_{m.get('text','')}_{m.get('image_url','')}"
+                    if key not in seen:
+                        seen.add(key)
+                        unique_details.append(m)
+            elif msg_type == "flex":
+                key = f"flex_{d.get('altText','')}_{str(d.get('json',''))}"
+                if key not in seen:
+                    seen.add(key)
+                    unique_details.append({
+                        "type": "flex",
+                        "altText": d.get("altText", "-"),
+                        "json": d.get("json", {})
+                    })
+            else:
+                key = f"{msg_type}_{d.get('text','')}_{d.get('image_url','')}"
+                if key not in seen:
+                    seen.add(key)
+                    dd = {
+                        "type": msg_type,
+                        "text": d.get("text"),
+                        "image_url": d.get("image_url")
+                    }
+                    unique_details.append(dd)
+        main["all_details"] = unique_details
+        messages.append(main)
+
+    messages = sorted(messages, key=lambda x: x.get("sent_at", datetime.min), reverse=True)
+    return render_template("message_history.html", messages=messages, oa_map=oa_map)
 # --- สร้าง FLEX MESSAGE ---
 @app.route('/upload_imgbb', methods=['POST'])
 def upload_imgbb():
@@ -1441,10 +1648,14 @@ def delete_flex_template(template_name):
     return redirect(url_for("flex_templates_list"))  # แก้ตรงนี้!
 
 # --- Progress & Cancel ตอนส่งข้อความ ---
+send_progress_by_user = {}
+
 @app.route("/send_progress")
 def send_progress_status():
-    global send_progress
-    return jsonify(send_progress)
+    user = session.get("user_login")
+    return jsonify(send_progress_by_user.get(user, {
+        "current": 0, "total": 0, "fail": 0, "done": False, "user_id": 0
+    }))
 
 @app.route("/cancel_send", methods=["POST"])
 def cancel_send():

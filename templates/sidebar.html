@@ -1,0 +1,21 @@
+{% if oa %}
+    <div class="sidebar-account">
+        <div class="sidebar-account-label">ไลน์ OA ที่ใช้งานปัจจุบัน</div>
+        <div class="sidebar-account-name">{{ oa.name }}</div>
+    </div>
+    <nav class="sidebar-menu">
+        <a href="{{ url_for('dashboard') }}" {% if request.endpoint == 'dashboard' %}class="active"{% endif %}>🏠 Dashboard</a>
+        <a href="{{ url_for('send_msg') }}" {% if request.endpoint == 'send_msg' %}class="active"{% endif %}>✉️ ส่งข้อความธรรมดา</a>
+        <a href="{{ url_for('send_flex_msg') }}" {% if request.endpoint == 'send_flex_msg' %}class="active"{% endif %}>🖼️ ส่งข้อความริชเมสเสจ</a>
+        <a href="{{ url_for('flex_templates_list') }}" {% if request.endpoint == 'flex_templates_list' %}class="active"{% endif %}>📥 รายการริชเมสเสจ</a>
+        <a href="{{ url_for('message_history') }}" {% if request.endpoint == 'message_history' %}class="active"{% endif %}>📦 ประวัติการส่งข้อความ</a>
+        <a href="{{ url_for('topup') }}" {% if request.endpoint == 'topup' %}class="active"{% endif %}>💸 เติมเงิน</a>
+        <a href="{{ url_for('topup_history') }}" {% if request.endpoint == 'topup_history' %}class="active"{% endif %}>💳 ประวัติการเติมเงิน</a>
+        <a href="{{ url_for('switch_oa') }}" {% if request.endpoint == 'switch_oa' %}class="active"{% endif %}>🔄 เปลี่ยน OA</a>
+    </nav>
+{% else %}
+    <nav class="sidebar-menu2">
+        <a href="{{ url_for('switch_oa') }}" {% if request.endpoint == 'switch_oa' %}class="active"{% endif %}>เลือกบัญชี OA</a>
+        <a href="{{ url_for('add_oa') }}" {% if request.endpoint == 'add_oa' %}class="active"{% endif %}>เพิ่มบัญชี OA</a>
+    </nav>
+{% endif %}

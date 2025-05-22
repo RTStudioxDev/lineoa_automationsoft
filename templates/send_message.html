@@ -188,45 +188,50 @@ input[type="radio"] {
     background: #e44f43 !important;
     color: #fff !important;
 }
+
+.toolbar-btn {
+    background: #edf0f4;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-size: 1.1rem;
+    color: #505a66;
+    cursor: pointer;
+    margin: 0 6px 0 0;
+    transition: background 0.13s, box-shadow 0.1s;
+}
+.toolbar-btn:active, .toolbar-btn:focus {
+    background: #e1ebef;
+}
+.toolbar-btn img { pointer-events: none; }
+.btn-add-msg {
+    background: #eafbe4;
+    color: #29b34a;
+    border: 1.5px solid #20b062;
+    border-radius: 7px;
+    padding: 6px 18px;
+    margin: 12px 0 15px 0;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 1em;
+}
+.btn-add-msg:hover { background: #c0f7ce; }
+
 </style>
 <div class="send-message-container">
     <h2 style="font-weight: 700; color: #097c22; margin-bottom: 36px; margin-left: auto; margin-right: auto; text-align: center;">
             ส่งข้อความธรรมดา+รูปภาพ
     </h2>
-    <form method="post" enctype="multipart/form-data">
-        <label>ข้อความ:</label>
-        <textarea name="text" rows="4" style="width:100%;resize:vertical;" placeholder="ใส่ข้อความ..."></textarea>
-
-        <label>รูปภาพ (URL หรือ อัปโหลดไฟล์):</label>
-        <input type="url" name="image_url" id="image_url" placeholder="ใส่ลิงก์รูป หรือเลือกไฟล์ข้างล่าง">
-        <!-- ปุ่มฝากไฟล์ + ปุ่มอัปโหลดไฟล์ (จัดแนวนอน) -->
-        <div style="display: flex; gap: 14px; margin-bottom: 12px; align-items: center;">
-            <div class="upload-btn-wrapper">
-                <button type="button" class="upload-btn" onclick="document.getElementById('image_file').click();">
-                    📷 เลือกไฟล์รูปภาพ
-                </button>
-                <input type="file" name="image_file" id="image_file" accept="image/*" onchange="showFileName(this)">
-                <span class="upload-file-label" id="fileLabel"></span>
-            </div>
-            <a href="https://pic.in.th/" target="_blank" rel="noopener" class="btn-upload-link">
-                เว็บฝากรูป
-            </a>
-        </div>
-
-        <!-- Preview รูป -->
-        <div id="image_preview" style="margin:14px 0;"></div>
-        <!-- เลือกเวลา -->
+    <form method="post" enctype="multipart/form-data" id="multiMessageForm">
+        <div id="messages-list"></div>
+            <button type="button" class="btn-add-msg" onclick="showTypeSelector()">+ เพิ่ม</button>
+        <br>
         <label>เวลาส่ง:</label>
         <div style="display: flex; gap: 14px; align-items: center; margin-bottom: 16px;">
-            <label>
-                <input type="radio" name="send_time_option" value="now" checked> ส่งตอนนี้
-            </label>
-            <label>
-                <input type="radio" name="send_time_option" value="schedule"> ตั้งเวลาส่ง
-            </label>
+            <label><input type="radio" name="send_time_option" value="now" checked> ส่งตอนนี้</label>
+            <label><input type="radio" name="send_time_option" value="schedule"> ตั้งเวลาส่ง</label>
             <input type="datetime-local" name="scheduled_time" id="scheduled_time" style="display:none;">
         </div>
-
         <label>ส่งถึง:</label>
         <select name="target" required style="width:100%;">
             <option value="broadcast">ทุกคน (Broadcast)</option>
@@ -234,8 +239,7 @@ input[type="radio"] {
                 <option value="{{ user_id }}">{{ user_id }}</option>
             {% endfor %}
         </select>
-
-        <button type="submit" class="btn">
+        <button type="submit" class="btn" style="margin-top:14px;">
             <span style="font-size:1.15em;vertical-align:middle;margin-right:6px;">🚀</span>
             เริ่มส่งข้อความ
         </button>
@@ -263,108 +267,136 @@ input[type="radio"] {
     </div>
     {{ super() }}
 </div>
+<script>
+    // === Message Composer JS ===
+let messageIndex = 0;
+let sending = false;
+let sendProgressInterval = null;
 
-    <script>
-        const imageUrlInput = document.getElementById('image_url');
-        const imageFileInput = document.getElementById('image_file');
-        const previewDiv = document.getElementById('image_preview');
+// --- ฟังก์ชัน: เพิ่มปุ่มเลือกประเภทข้อความ/รูปภาพ ---
+function showTypeSelector() {
+    let selectorDiv = document.createElement('div');
+    selectorDiv.className = "msg-type-selector";
+    selectorDiv.innerHTML = `
+        <button type="button" onclick="addMessageBlock('text', this)" class="toolbar-btn">📝 ข้อความ</button>
+        <button type="button" onclick="addMessageBlock('image', this)" class="toolbar-btn">🖼️ รูปภาพ</button>
+    `;
+    document.getElementById('messages-list').appendChild(selectorDiv);
+    // ซ่อนปุ่ม +เพิ่ม
+    document.querySelector('.btn-add-msg').style.display = "none";
+}
 
-        // Preview จาก URL
-        imageUrlInput.oninput = function() {
-            if (imageFileInput.files.length === 0) {
-                const url = this.value.trim();
-                if (url && /^https?:\/\/.+\.(jpg|jpeg|png|gif)$/i.test(url)) {
-                    previewDiv.innerHTML = `<img src="${url}" style="max-width:320px;max-height:220px;border-radius:10px;box-shadow:0 2px 12px #bbb;">`;
-                } else {
-                    previewDiv.innerHTML = "";
-                }
+// --- ฟังก์ชัน: เพิ่มบล็อกข้อความ/รูปภาพ ---
+function addMessageBlock(type = "text", btn) {
+    messageIndex++;
+    btn.parentNode.remove(); // ลบปุ่ม selector ออก
+
+    let id = "msg-" + messageIndex;
+    let html = `
+        <div class="msg-block" style="border:1.3px solid #e3f6db;padding:13px 14px 6px 14px;border-radius:10px;margin-bottom:11px;background:#fcfffc;position:relative;">
+            <div style="display:flex;gap:6px;margin-bottom:6px;">
+                <span style="color:#789;">${type === "text" ? "ข้อความ" : "รูปภาพ"}</span>
+                <button type="button" class="btn-remove-msg" onclick="removeMsgBlock(this)" style="margin-left:auto;">ลบ</button>
+            </div>
+            ${type === "text"
+                ? `<textarea name="messages[${id}][text]" rows="3" maxlength="500" placeholder="ใส่ข้อความ..." style="width:98%;resize:vertical;"></textarea>`
+                : `<input type="file" name="messages[${id}][image]" accept="image/*" onchange="previewImg(event, '${id}')">
+                   <div class="img-preview" id="preview-${id}" style="margin-top:6px;"></div>`
             }
-        };
+        </div>
+    `;
+    let div = document.createElement('div');
+    div.innerHTML = html;
+    document.getElementById('messages-list').appendChild(div);
 
-        // Preview จากไฟล์
-        imageFileInput.onchange = function() {
-            if (this.files.length > 0) {
-                const file = this.files[0];
-                const url = URL.createObjectURL(file);
-                previewDiv.innerHTML = `<img src="${url}" style="max-width:320px;max-height:220px;border-radius:10px;box-shadow:0 2px 12px #bbb;">`;
-            } else {
-                // ถ้าไม่ได้เลือกไฟล์ กลับไปดู url
-                if (imageUrlInput.value.trim()) {
-                    const url = imageUrlInput.value.trim();
-                    if (/^https?:\/\/.+\.(jpg|jpeg|png|gif)$/i.test(url)) {
-                        previewDiv.innerHTML = `<img src="${url}" style="max-width:320px;max-height:220px;border-radius:10px;box-shadow:0 2px 12px #bbb;">`;
-                    } else {
-                        previewDiv.innerHTML = "";
-                    }
-                } else {
-                    previewDiv.innerHTML = "";
+    // แสดงปุ่ม +เพิ่ม อีกครั้ง
+    document.querySelector('.btn-add-msg').style.display = "inline-block";
+}
+
+// --- ฟังก์ชัน: ลบบล็อกข้อความ/รูปภาพ ---
+function removeMsgBlock(btn) {
+    btn.closest('.msg-block').remove();
+    // ถ้าไม่มีบล็อกเหลือ ให้โชว์ปุ่มเลือกประเภท
+    if (
+        document.querySelectorAll('#messages-list .msg-block').length === 0 &&
+        !document.querySelector('#messages-list .msg-type-selector')
+    ) {
+        showTypeSelector();
+    }
+}
+
+// --- ฟังก์ชัน: แสดงตัวอย่างรูป (inline) ---
+function previewImg(event, id) {
+    let file = event.target.files[0];
+    let preview = document.getElementById("preview-" + id);
+    if (file) {
+        let url = URL.createObjectURL(file);
+        preview.innerHTML = `<img src="${url}" style="max-width:180px;max-height:120px;border-radius:7px;">`;
+    } else {
+        preview.innerHTML = "";
+    }
+}
+
+// --- ฟังก์ชัน Modal Progress ---
+function openSendModal() {
+    document.getElementById('sendProgressModal').style.display = "flex";
+    updateProgressUI(0, 0, 0);
+}
+function closeSendModal() {
+    document.getElementById('sendProgressModal').style.display = "none";
+}
+
+function updateProgressUI(current, total, fail, user_id) {
+    let percent = total ? Math.floor((current/total)*100) : 0;
+    document.getElementById('progressBar').style.width = percent + "%";
+    // ปรับการแสดงผลตรงนี้
+    document.getElementById('progressStatusText').innerText =
+        `ส่งข้อความแล้ว ${current} ข้อความ / (ทั้งหมด ${user_id} คน)${fail ? ", ล้มเหลว " + fail + " ข้อความ" : ""}`;
+    document.getElementById('progressCount').innerText = `(${percent}% เสร็จสิ้น)`;
+}
+
+// --- ฟังก์ชันอื่น ๆ ---
+function showFileName(input) {
+    const label = document.getElementById('fileLabel');
+    label.textContent = input.files.length > 0 ? input.files[0].name : '';
+}
+
+// --- กำหนดแสดง/ซ่อน input ตั้งเวลาส่ง ---
+document.querySelectorAll('input[name="send_time_option"]').forEach(radio => {
+    radio.onchange = function () {
+        document.getElementById('scheduled_time').style.display = (this.value === 'schedule') ? '' : 'none';
+    };
+});
+
+// --- กำหนด onsubmit สำหรับฟอร์ม (modal + backend) ---
+document.getElementById("multiMessageForm").onsubmit = function(e) {
+    openSendModal();
+    sending = true;
+    sendProgressInterval = setInterval(function() {
+        fetch('/send_progress')
+            .then(r => r.json())
+            .then(d => {
+                updateProgressUI(d.current, d.total, d.fail || 0, d.user_id || 0);
+                if (d.done) {
+                    setTimeout(closeSendModal, 800);
+                    clearInterval(sendProgressInterval);
                 }
-            }
-        };
-
-        let sending = false;
-        let sendProgressInterval = null;
-
-        // เปิด Modal ตอนเริ่มส่ง
-        function openSendModal() {
-            document.getElementById('sendProgressModal').style.display = "flex";
-            updateProgressUI(0, 0, 0); // เริ่มต้น
-        }
-
-        // ปิด Modal
-        function closeSendModal() {
-            document.getElementById('sendProgressModal').style.display = "none";
-        }
-
-        // อัปเดต Progress UI
-        function updateProgressUI(current, total, fail) {
-            let percent = total ? Math.floor((current / total) * 100) : 0;
-            document.getElementById('progressBar').style.width = percent + "%";
-            document.getElementById('progressStatusText').innerText =
-                `ส่งข้อความแล้ว ${current} / ${total} คน${fail ? ", ล้มเหลว " + fail + " คน" : ""}`;
-            document.getElementById('progressCount').innerText =
-                `(${percent}% เสร็จสิ้น)`;
-        }
-
-        // เรียกใช้ตอน submit form
-        document.querySelector("form").onsubmit = function(e) {
-            openSendModal();
-            sending = true;
-            // Start polling progress (AJAX)
-            sendProgressInterval = setInterval(function() {
-                fetch('/send_progress')
-                .then(r => r.json())
-                .then(d => {
-                    updateProgressUI(d.current, d.total, d.fail || 0);
-                    if (d.done) {
-                        setTimeout(closeSendModal, 800);
-                        clearInterval(sendProgressInterval);
-                    }
-                });
-            }, 800);
-        };
-
-        // ปุ่มยกเลิก
-        document.getElementById('cancelSendBtn').onclick = function() {
-            fetch('/cancel_send', {method:'POST'}).then(() => {
-                sending = false;
-                closeSendModal();
-                window.location.reload();
             });
-        };
-        function showFileName(input) {
-            const label = document.getElementById('fileLabel');
-            if (input.files.length > 0) {
-                label.textContent = input.files[0].name;
-            } else {
-                label.textContent = '';
-            }
-        }
-        // ซ่อน/โชว์ input เวลา
-        document.querySelectorAll('input[name="send_time_option"]').forEach(radio => {
-            radio.onchange = function() {
-                document.getElementById('scheduled_time').style.display = (this.value === 'schedule') ? '' : 'none';
-            }
-        });
-    </script>
+    }, 800);
+};
+
+// --- ปุ่มยกเลิก modal progress ---
+document.getElementById('cancelSendBtn').onclick = function() {
+    fetch('/cancel_send', {method:'POST'}).then(() => {
+        sending = false;
+        closeSendModal();
+        window.location.reload();
+    });
+};
+
+// --- โหลดปุ่มเลือก type อัตโนมัติเมื่อเพจเปิด ---
+document.addEventListener("DOMContentLoaded", function() {
+    showTypeSelector();
+});
+</script>
 {% endblock %}

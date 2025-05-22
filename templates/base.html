@@ -13,7 +13,7 @@
     <link rel="icon" type="image/png" sizes="128x128" href="{{ url_for('static', filename='favicon-128x128.png') }}">
     <link rel="icon" type="image/png" sizes="256x256" href="{{ url_for('static', filename='favicon-256x256.png') }}">
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
-    <!-- <script src="{{ url_for('static', filename='js/protect.js') }}"></script> -->
+    <script src="{{ url_for('static', filename='js/protect.js') }}"></script>
 </head>
 
 <body>
@@ -94,8 +94,8 @@
                 <a href="{{ url_for('switch_oa') }}" {% if request.endpoint == 'switch_oa' %}class="active"{% endif %}>🔄 เปลี่ยน OA</a>
             </nav>
         {% else %}
-            <nav class="sidebar-menu">
-                <a href="{{ url_for('login') }}">เลือกบัญชี OA</a>
+            <nav class="sidebar-menu2">
+                <a href="{{ url_for('switch_oa') }}">เลือกบัญชี OA</a>
                 <a href="{{ url_for('add_oa') }}">เพิ่มบัญชี OA</a>
             </nav>
         {% endif %}

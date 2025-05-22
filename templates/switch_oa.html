@@ -1,13 +1,116 @@
 {% extends "base.html" %}
 {% block content %}
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Prompt:wght@400;600&display=swap');
+body {
+    background: linear-gradient(120deg, #eafcf7 0%, #f5f5ff 100%);
+    font-family: 'Prompt', 'Segoe UI', Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+.oa-container {
+    background: #f6fff6;
+    border-radius: 18px;
+    box-shadow: 0 4px 24px rgba(46,125,50,0.07), 0 0 0 1px #e7fbe6;
+    padding: 24px 24px 4px 24px;
+    max-width: 2000px;
+    margin: 32px 0 0 -280px !important;
+}
+.oa-container h2 {
+    font-weight: 600;
+    font-size: 1.35rem;
+    margin-bottom: 18px;
+    color: #008f36;
+    text-align: center;
+    letter-spacing: 0.5px;
+}
+.oa-container label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: 500;
+    color: #222;
+}
+.oa-container select {
+    width: 100%;
+    padding: 12px 10px;
+    border-radius: 10px;
+    border: 1.5px solid #e0e3ea;
+    font-size: 1rem;
+    margin-bottom: 18px;
+    outline: none;
+    transition: border 0.2s;
+    background: #f7fafd;
+    font-family: inherit;
+}
+.oa-container select:focus {
+    border: 1.5px solid #26cf85;
+    background: #f1f8f3;
+}
+.oa-container button {
+    width: 100%;
+    padding: 12px 0;
+    background: linear-gradient(90deg, #26cf85 0%, #00b064 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 1.12rem;
+    font-weight: 600;
+    box-shadow: 0 2px 12px 0 rgba(0,176,100,0.07);
+    cursor: pointer;
+    transition: background 0.15s, box-shadow 0.2s;
+}
+.oa-container button:hover {
+    background: linear-gradient(90deg, #00b064 0%, #26cf85 100%);
+    box-shadow: 0 4px 20px 0 rgba(0,176,100,0.15);
+}
+
+.btn-add-oa {
+display: block;
+margin: 20px auto 0 auto;
+padding: 12px 0;
+width: 100%;
+background: linear-gradient(90deg, #009966 0%, #00c27b 100%);
+color: white;
+border: none;
+border-radius: 10px;
+font-size: 1.05rem;
+font-weight: 600;
+text-align: center;
+text-decoration: none;
+transition: background 0.15s, box-shadow 0.2s;
+box-shadow: 0 2px 12px 0 rgba(0,176,100,0.07);
+letter-spacing: 0.5px;
+}
+.btn-add-oa:hover {
+background: linear-gradient(90deg, #00c27b 0%, #009966 100%);
+box-shadow: 0 4px 20px 0 rgba(0,176,100,0.13);
+}
+
+@media (max-width: 600px) {
+    .oa-container {
+        max-width: 95vw;
+        margin: 16px 2vw;
+        padding: 20px 8px 18px 8px;
+    }
+    .oa-container h2 {
+        font-size: 1.08rem;
+    }
+    .oa-container button {
+        font-size: 1rem;
+    }
+}
+</style>
+<div class="oa-container">
   <h2>เลือกบัญชี LINE OA</h2>
   <form method="post">
-      <label>บัญชี OA:</label>
-      <select name="oa_id" required>
+      <label for="oa-id">บัญชี OA:</label>
+      <select name="oa_id" id="oa-id" required>
           {% for oa in oa_list %}
             <option value="{{ oa.id }}">{{ oa.name }}</option>
           {% endfor %}
       </select>
-      <button type="submit">เปลี่ยน OA</button>
+      <button type="submit">เลือก Line OA</button>
   </form>
+  <a href="{{ url_for('add_oa') }}" class="btn-add-oa">+ เพิ่มบัญชี OA ใหม่</a>
+</div>
 {% endblock %}

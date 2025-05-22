@@ -546,6 +546,28 @@ nav.top-navbar {
     color: #ffe600;
     font-weight: 200;
 }
+.sidebar-menu2 {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 24px 0;
+}
+.sidebar-menu2 a {
+    padding: 14px 28px;
+    color: #fff;
+    text-decoration: none;
+    font-size: 0.68em;
+    font-weight: 500;
+    border-radius: 10px 0 0 10px;
+    transition: background 0.18s, color 0.18s;
+    margin: 1px 0;
+}
+.sidebar-menu2 a:hover, .sidebar-menu a.active {
+    background: #16b955;
+    color: #ffe600;
+    font-weight: 200;
+}
 .sidebar-footer {
     margin-top: auto;
     padding: 12px 24px;
@@ -557,10 +579,17 @@ nav.top-navbar {
     min-height: 100vh;
     padding-bottom: 50px;
 }
-@media (max-width: 900px) {
+@media (max-width: 600px) {
     .sidebar { width: 100px; }
     .sidebar-header, .sidebar-account, .sidebar-footer { display: none; }
-    .sidebar-menu a { padding: 20px 9px; font-size: 1em; }
+    .sidebar-menu a { border-radius: 7px 7px 7px 7px; padding: 12px 14px; font-size: 0.95em; }
+}
+@media (max-width: 600px) {
+    .sidebar-menu2 a {
+        font-size: 0.95em;
+        padding: 12px 14px;
+        border-radius: 7px 7px 7px 7px;
+    }
 }
 
 /* ===== MOBILE-FIRST RESPONSIVE (ปรับใหม่หมด) ===== */

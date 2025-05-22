@@ -103,9 +103,6 @@ class LineAPI:
         return r.json()
 
     def send_multicast(self, user_id_list, text, image_url=None):
-        """
-        ส่งข้อความ text/image หา user_ids หลายคน (สูงสุด 500 คนต่อครั้ง)
-        """
         url = f"{self.base_url}/message/multicast"
         messages = []
         if text:
@@ -117,22 +114,18 @@ class LineAPI:
                 "previewImageUrl": image_url
             })
         data = {
-            "to": user_id_list[:500],  # ตัดให้ไม่เกิน 500
+            "to": user_id_list[:500],  # ไม่เกิน 500
             "messages": messages
         }
         r = requests.post(url, headers=self.get_headers(), json=data)
         try:
             r.raise_for_status()
-            # ถ้าส่งสำเร็จจะได้ status 200, ไม่มีเนื้อหา (empty response)
+            # LINE จะตอบ status 200 ถ้าส่งสำเร็จ
             return True
         except Exception:
-            # หาก status code != 200 ถือว่าส่งไม่สำเร็จ
             return False
 
     def send_multicast_flex(self, user_id_list, flex_content, alt_text="ข้อความ Flex"):
-        """
-        ส่ง Flex message หา user_ids หลายคน (สูงสุด 500 คนต่อครั้ง)
-        """
         url = f"{self.base_url}/message/multicast"
         data = {
             "to": user_id_list[:500],
@@ -143,8 +136,15 @@ class LineAPI:
             }]
         }
         r = requests.post(url, headers=self.get_headers(), json=data)
+        print("[DEBUG] user_id_list:", user_id_list)
+        print("[DEBUG] URL:", url)
+        print("[DEBUG] Headers:", self.get_headers())
+        print("[DEBUG] Data:", data)
+        print("[DEBUG] Response status:", r.status_code)
+        print("[DEBUG] Response text:", r.text)
         try:
             r.raise_for_status()
             return True
-        except Exception:
+        except Exception as e:
+            print("[ERROR] Failed to send flex:", str(e))
             return False

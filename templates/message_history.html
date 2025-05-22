@@ -4,75 +4,148 @@
 .table-wrap {
     background: #f6fff6;
     border-radius: 18px;
-    box-shadow: 0 4px 24px rgba(46, 125, 50, 0.08), 0 0 0 1px #e7fbe6;
-    padding: 24px 24px 4px 24px;
-    width: 90vw;
-    max-width: 1450px;
-    margin: 32px 0 0 -300px !important;
+    box-shadow: 0 4px 32px rgba(46, 125, 50, 0.09), 0 0 0 1px #e7fbe6;
+    padding: 16px 2vw 12px 2vw;
+    width: 95vw;
+    max-width: 1400px;
+    margin: 32px 0 0 -280px !important;
+    overflow-x: auto;
 }
+
 .table-modern {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
     background: #fff;
-    border-radius: 16px;
+    border-radius: 14px;
     overflow: hidden;
     font-size: 1rem;
     box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+    min-width: 700px;
 }
+
 .table-modern th, .table-modern td {
-    padding: 16px 12px;
-    text-align: center;         /* กลางแนวนอน */
-    vertical-align: middle;     /* กลางแนวตั้ง */
+    padding: 14px 10px;
+    text-align: center;
+    vertical-align: middle;
+    word-break: break-word;
 }
+
 .table-modern th {
     background: #e7fbe6;
     color: #007a4d;
     font-weight: 600;
     border-bottom: 2px solid #d7efde;
-    letter-spacing: 1px;
-    font-size: 1.05em;
+    letter-spacing: 0.5px;
+    font-size: 1em;
+    position: sticky;
+    top: 0;
+    z-index: 2;
 }
+
 .table-modern tr {
-    transition: background 0.18s;
+    transition: background 0.15s;
 }
+
 .table-modern tbody tr:hover {
-    background: #f2ffed;
+    background: #e2ffd5;
 }
+
 .table-modern td {
     border-bottom: 1px solid #f2f2f2;
+    font-size: 0.98em;
 }
+
 .status-success {
-    color: #25a154;
-    font-weight: 500;
+    color: #18b566;
+    font-weight: 600;
 }
 .status-pending {
-    color: #ff9900;
-    font-weight: 500;
+    color: #fdac28;
+    font-weight: 600;
 }
 .status-fail {
     color: #e44f43;
-    font-weight: 500;
+    font-weight: 600;
 }
-@media (max-width: 900px) {
-    .table-modern th, .table-modern td { font-size: 0.93em; padding: 10px 4px;}
-    .table-wrap {padding: 6vw 2vw 2vw 2vw;}
-    .table-modern th, .table-modern td { min-width: 80px; }
+.status-partial {
+    color: #db8816;
+    font-weight: 600;
 }
-img.message-img {
+
+img.message-img, td img {
     border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(34,139,34,0.07);
+    box-shadow: 0 2px 10px rgba(34,139,34,0.09);
     margin: 0 auto 3px auto;
-    max-width: 120px; max-height: 120px; width: auto; height: auto; display: block;
+    max-width: 96px;
+    max-height: 96px;
+    width: auto;
+    height: auto;
+    display: block;
 }
+
 .flex-detail-alt {
     font-size: 12px;
     color: #888;
     margin-top: 8px;
-}   
+}
+
+ul {
+    margin: 0;
+    padding-left: 15px;
+}
+li {
+    margin-bottom: 4px;
+    text-align: left;
+}
+
+@media (max-width: 900px) {
+    .table-wrap {
+        max-width: 99vw;
+        padding: 10px 0 0 0;
+        margin-left: 0 !important;
+    }
+    .table-modern th, .table-modern td {
+        padding: 9px 4px;
+        font-size: 0.94em;
+    }
+    .table-modern {
+        min-width: 520px;
+    }
+    .table-modern th, .table-modern td {
+        min-width: 80px;
+    }
+    img.message-img, td img {
+        max-width: 70px;
+        max-height: 70px;
+    }
+}
+
+@media (max-width: 600px) {
+    .table-wrap {
+        padding: 3vw 1vw;
+    }
+    .table-modern th, .table-modern td {
+        padding: 7px 3px;
+        font-size: 0.90em;
+        min-width: 60px;
+    }
+    .table-modern {
+        font-size: 0.91em;
+    }
+    img.message-img, td img {
+        max-width: 46px;
+        max-height: 46px;
+    }
+    li {
+        font-size: 0.97em;
+    }
+}
 </style>
 <div class="table-wrap">
     <h2 style="font-weight: 700; color: #19693c; margin-bottom: 16px; text-align: center;">ประวัติการส่งข้อความ</h2>
+    <h2 style="font-weight: 700; color: #d8a911; margin-bottom: 16px; text-align: center;">(ระบบจะเก็บประวัติไว้แค่ 7 วันเท่านั้นหลังจากนั้นจะลบออกอัตโนมัติ)</h2>
+    <h2 style="font-weight: 700; color: #d88811; margin-bottom: 16px; text-align: center;">(ถ้าหากมีประวัติเยอะเกินไปจะทำให้ Line OA ล็อกอินไม่ได้)</h2>
     <table class="table-modern">
         <thead>
             <tr>
@@ -81,89 +154,94 @@ img.message-img {
                 <th>วันที่ส่ง</th>
                 <th>ประเภทเวลา</th>
                 <th>รายละเอียด</th>
+                <th>จำนวนคนที่ส่ง</th>
                 <th>สถานะ</th>
-                <th>จำนวนที่ส่ง</th>
             </tr>
         </thead>
         <tbody>
-            {% for msg in messages %}
+            {% for group in messages %}
             <tr>
-                <td>{{ oa_map[msg._oa_id]|default(msg._oa_id) }}</td>
+                <td>{{ oa_map[group._oa_id]|default(group._oa_id) }}</td>
                 <td>
-                    {% if msg.type == "flex" %}
+                    {# --- เช็คว่าเป็น multi ข้อความ+รูป หรือไม่ --- #}
+                    {% set types = group.all_details | map(attribute='type') | list %}
+                    {% if 'flex' in types %}
                         ริชเมสเสจ
-                    {% elif msg.type == "text" %}
-                        ข้อความ
-                    {% elif msg.type == "image" %}
-                        รูปภาพ
-                    {% elif msg.type == "text_image" %}
+                    {% elif 'text' in types and 'image' in types %}
                         ข้อความ+รูป
+                    {% elif 'text' in types %}
+                        ข้อความ
+                    {% elif 'image' in types %}
+                        รูปภาพ
                     {% else %}
-                        {{ msg.type }}
+                        {{ group.type }}
                     {% endif %}
                 </td>
                 <td>
-                    {% if msg.sent_at %}
-                        {{ msg.sent_at.strftime("%d/%m/%Y %H:%M") }}
-                    {% else %}
-                        -
-                    {% endif %}
+                    {% if group.sent_at %}
+                        {{ group.sent_at.strftime("%d/%m/%Y %H:%M") }}
+                    {% else %}-{% endif %}
                 </td>
                 <td>
-                    {% set status = msg.status %}
-                    {% set scheduled_time = msg.detail.get('scheduled_time') if msg.detail else None %}
-                    {% if not scheduled_time and msg.get('scheduled_time') %}
-                        {% set scheduled_time = msg.scheduled_time %}
-                    {% endif %}
-                    {% if status in ['pending', 'waiting'] %}
+                    {% set scheduled_time = group.detail.get('scheduled_time') if group.detail else None %}
+                    {% if scheduled_time %}
                         <span>ตั้งเวลาล่วงหน้า</span>
                     {% else %}
                         <span>ส่งตอนนี้</span>
                     {% endif %}
                 </td>
                 <td>
-                    {% if msg.type == "flex" %}
-                        {% set json = msg.detail.get('json', {}) %}
-                        {% set image_url = '' %}
-                        {% if json.get('hero', {}).get('url') %}
-                            {% set image_url = json.hero.url %}
-                        {% elif json.get('contents', []) and json.contents[0].get('hero', {}).get('url') %}
-                            {% set image_url = json.contents[0].hero.url %}
-                        {% endif %}
-                        {% if image_url %}
-                            <img src="{{ image_url }}" alt="Flex Image" class="message-img">
+                    <ul style="margin:0; padding-left:15px;">
+                    {% for d in group.all_details %}
+                        <li style="margin-bottom:4px;">
+                        {% if d.type == "text" %}
+                            <div style="text-align: center;">
+                                <span style="color: #86b8a7; font-size: 13px;">
+                                    <b>ข้อความ:</b> {{ d.text }}
+                                </span>
+                            </div>
+                        {% elif d.type == "image" %}
+                            <div style="text-align: center;">
+                                <span style="color: #7ab987; font-size: 13px;">
+                                    <b>รูป</b>
+                                </span>
+                            </div>
+                            <img src="{{ d.image_url }}" alt="รูป" style="max-width:64px;max-height:64px;">
+                        {% elif d.type == "flex" %}
+                            {% set json = d.get('json', {}) %}
+                            {% set image_url = json.get('hero', {}).get('url', '') %}
+                            {% if image_url %}
+                                <img src="{{ image_url }}" alt="Flex Image" style="max-width:64px;max-height:64px;">
+                            <div style="text-align: center;">
+                                <span style="color: #d6bd78; font-size: 13px;">
+                                    <b>ชื่อตอนแจ้งเตือน:</b> {{ d.altText or d.get("altText", "-") }}
+                                </span>
+                            </div>
+                            {% endif %}
                         {% else %}
-                            <span style="color:#888;">(ไม่มีรูปใน Flex)</span>
+                            <pre>{{ d | tojson }}</pre>
                         {% endif %}
-                        <div class="flex-detail-alt">
-                            ข้อความที่แจ้งเตือน: {{ msg.detail.get('altText', '-') }}
-                        </div>
-                    {% else %}
-                        {% if msg.detail.get('text') %}
-                            <div style="margin-bottom:8px;">{{ msg.detail.get('text') }}</div>
-                        {% endif %}
-                        {% if msg.detail.get('image_url') %}
-                            <img src="{{ msg.detail.image_url }}" alt="Image" class="message-img">
-                        {% endif %}
-                    {% endif %}
+                        </li>
+                    {% endfor %}
+                    </ul>
                 </td>
+                <td>{{ group.send_count or 1 }}</td>
                 <td>
-                    {{ msg.send_count or 1 }} คน
-                </td>
-                <td>
-                    {% if msg.status in ["pending", "waiting"] %}
-                        <span class="status-pending">รอเวลาส่ง</span>
-                    {% elif msg.status in ["sent", "success"] %}
+                    {% set total = group.send_count or 1 %}
+                    {% set fail_count = group.all_status | select('equalto', 'fail') | list | length %}
+                    {% set success_count = group.all_status | select('equalto', 'success') | list | length %}
+                    {% if fail_count == 0 and success_count == total %}
                         <span class="status-success">ส่งสำเร็จ</span>
-                    {% elif msg.status in ["error", "fail"] %}
+                    {% elif fail_count > 0 and success_count > 0 %}
+                        <span class="status-partial">บางคนไม่สำเร็จ ({{ fail_count }}/{{ total }})</span>
+                    {% elif fail_count == total %}
                         <span class="status-fail">ส่งไม่สำเร็จ</span>
-                        {% if msg.error_msg %}
-                            <br><small>{{ msg.error_msg }}</small>
-                        {% elif msg.detail.get('error_msg') %}
-                            <br><small>{{ msg.detail.error_msg }}</small>
-                        {% endif %}
+                    {% elif group.status in ["pending", "waiting"] %}
+                        <span class="status-pending">รอเวลาส่ง</span>
+                    {% elif group.status == "success" %}
+                        <span class="status-success">ส่งสำเร็จ</span>
                     {% else %}
-                        {{ msg.status }}
+                        {{ group.status }}
                     {% endif %}
                 </td>
             </tr>

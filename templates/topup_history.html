@@ -68,12 +68,60 @@
     vertical-align: middle;
     display: inline-block;
 }
-.topuphistory-badge-qr      { background: #e5eaff; color: #4974e9;}
-.topuphistory-badge-slip    { background: #f6e9e1; color: #b65c25;}
-.topuphistory-badge-other   { background: #eaeaea; color: #666; }
-.topuphistory-badge-pending { background: #fff5dc; color: #ff9f1c;}
-.topuphistory-badge-success { background: #e7fbe6; color: #27ae60;}
-.topuphistory-badge-danger  { background: #fae1e2; color: #e44f43;}
+
+.badge-center {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start; /* หรือ center ถ้าต้องการกลางแนวตั้ง */
+    width: 100%;
+}
+.badge {
+    display: inline-block;
+    padding: 6px 16px;
+    font-size: 0.98em;
+    border-radius: 24px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    margin: 0 4px;
+    box-shadow: 0 2px 8px 0 rgba(0,0,0,0.04);
+    vertical-align: middle;
+    transition: background 0.15s, color 0.15s;
+}
+.badge-pending {
+    background: #fff9e3;
+    color: #ffae00;
+    border: 1.2px solid #ffe09e;
+}
+.badge-success {
+    background: #eafff2;
+    color: #16b955;
+    border: 1.2px solid #acf4c8;
+}
+.badge-danger {
+    background: #f8e2e2;
+    color: #ff3340;
+    border: 1.2px solid #ffb0b0;
+}
+.badge-qr {
+    background: #dfeff8;
+    color: #4974e9;
+    border: 1.2px solid #7493e9;
+}
+.badge-slip {
+    background: #f5f0e4;
+    color: #e4a00e;
+    border: 1.2px solid #dfbc73;
+}
+.badge-other {
+    background: #d8d6d6;
+    color: #666;
+    border: 1.2px solid #666;
+}
+.badge-amount {
+    background: #eafff2;
+    color: #5ac245;
+    border: 1.2px solid #20850c;
+}
 
 /* Image Style */
 .topuphistory-table img {
@@ -119,60 +167,64 @@
         <div style="font-size:1.7em;font-weight:700;color:#16913d;margin-bottom:20px;">
             ประวัติการเติมเครดิต
         </div>
-        <table class="topuphistory-table">
-            <thead>
-                <tr>
-                    <th>วันที่</th>
-                    <th>จำนวนเงิน (บาท)</th>
-                    <th>ช่องทาง</th>
-                    <th>สลิป/QR</th>
-                    <th>สถานะ</th>
-                </tr>
-            </thead>
-            <tbody>
-            {% for slip in slips %}
-                <tr>
-                    <td>{{ slip.created_at.strftime("%Y-%m-%d %H:%M") if slip.created_at else "-" }}</td>
-                    <td style="font-weight:600;">{{ '%.2f'|format(slip.amount) }}</td>
-                    <td>
-                        {% if slip.type == "qr" %}
-                            <span class="badge badge-qr">QR PromptPay</span>
-                        {% elif slip.type == "slip" %}
-                            <span class="badge badge-slip">แนบสลิป</span>
-                        {% else %}
-                            <span class="badge badge-other">{{ slip.type|default("อื่นๆ") }}</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if slip.type == "slip" %}
-                        <a href="{{ slip.image }}" target="_blank">
-                            <img src="{{ slip.image }}" width="44" style="border-radius:6px;box-shadow:0 1px 6px #0001;">
-                        </a>
-                        {% elif slip.type == "qr" and slip.qr_ref %}
-                        <span style="color:#777;font-size:0.97em;">Ref: {{ slip.qr_ref }}</span>
-                        {% else %}
-                        <span>-</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if slip.status == "pending" %}
-                            <span class="badge badge-pending">รอตรวจสอบ</span>
-                        {% elif slip.status == "approved" %}
-                            <span class="badge badge-success">อนุมัติแล้ว</span>
-                        {% elif slip.status == "rejected" %}
-                            <span class="badge badge-danger">ปฏิเสธ</span>
-                        {% else %}
-                            <span class="badge badge-other">-</span>
-                        {% endif %}
-                    </td>
-                </tr>
-            {% else %}
-                <tr>
-                  <td colspan="5" style="color:#aaa;text-align:center;">-- ยังไม่มีประวัติการเติมเงิน --</td>
-                </tr>
-            {% endfor %}
-            </tbody>
-        </table>
+        <div class="badge-center">
+            <table class="topuphistory-table">
+                <thead>
+                    <tr>
+                        <th>วันที่</th>
+                        <th>จำนวนเงิน (บาท)</th>
+                        <th>ช่องทาง</th>
+                        <th>สลิป/QR</th>
+                        <th>สถานะ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for slip in slips %}
+                        <tr>
+                            <td>{{ slip.created_at.strftime("%Y-%m-%d %H:%M") if slip.created_at else "-" }}</td>
+                            <td>
+                                <span class="badge badge-amount">{{ '%.2f'|format(slip.amount) }}</span>
+                            </td>
+                            <td>
+                                {% if slip.type == "qr" %}
+                                    <span class="badge badge-qr">QR PromptPay</span>
+                                {% elif slip.type == "slip" %}
+                                    <span class="badge badge-slip  ">แนบสลิป</span>
+                                {% else %}
+                                    <span class="badge badge-other">{{ slip.type|default("อื่นๆ") }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if slip.type == "slip" %}
+                                <a href="{{ slip.image }}" target="_blank">
+                                    <img src="{{ slip.image }}" width="44" style="border-radius:6px;box-shadow:0 1px 6px #0001;">
+                                </a>
+                                {% elif slip.type == "qr" and slip.qr_ref %}
+                                <span style="color:#777;font-size:0.97em;">Ref: {{ slip.qr_ref }}</span>
+                                {% else %}
+                                <span>-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if slip.status == "pending" %}
+                                    <span class="badge badge-pending">รอตรวจสอบ</span>
+                                {% elif slip.status == "approved" %}
+                                    <span class="badge badge-success">อนุมัติแล้ว</span>
+                                {% elif slip.status == "rejected" %}
+                                    <span class="badge badge-danger">ปฏิเสธ</span>
+                                {% else %}
+                                    <span class="badge badge-other">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                        <td colspan="5" style="color:#aaa;text-align:center;">-- ยังไม่มีประวัติการเติมเงิน --</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 {% endblock %}
